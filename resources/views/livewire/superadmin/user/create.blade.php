@@ -1,15 +1,10 @@
-<el-dialog wire:ignore.self>
-    <dialog id="dialog" aria-labelledby="dialog-title" role="dialog" aria-modal="true"
-        class="fixed inset-0 size-auto max-h-none max-w-none overflow-y-auto bg-transparent backdrop:bg-transparent">
+@if ($showCreateModal)
+    <div class="fixed inset-0 z-50" wire:keydown.escape.window="cancelCreate" aria-labelledby="dialog-title"
+        role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-gray-900/50" wire:click="cancelCreate" aria-hidden="true"></div>
 
-        <el-dialog-backdrop
-            class="fixed inset-0 bg-gray-900/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in">
-        </el-dialog-backdrop>
-
-        <div tabindex="0" class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <el-dialog-panel
-                class="relative transform overflow-hidden rounded-lg bg-gray-800 text-left shadow-xl outline -outline-offset-1 outline-white/10 transition-all data-closed:translate-y-4 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in sm:my-8 sm:w-full sm:max-w-lg data-closed:sm:translate-y-0 data-closed:sm:scale-95">
-
+        <div class="relative flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative w-full transform overflow-hidden rounded-lg bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:max-w-lg">
                 <div class="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="mb-3 flex items-center gap-3">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -22,8 +17,9 @@
 
                     {{-- Ringkas error paling pertama (opsional) --}}
                     @if ($errors->any())
-                        <div class="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-                            {{ $errors->first() }}
+                        <div wire:key="create-form-error-banner"
+                            wire:transition.opacity.duration.200ms
+                            class="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">                            {{ $errors->first() }}
                         </div>
                     @endif
 
@@ -37,8 +33,9 @@
                                 class="mt-1 w-full rounded-lg border {{ $errors->has('nama') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400"
                                 placeholder="Masukkan nama">
                             @error('nama')
-                                <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
-                            @enderror
+                                <p wire:key="error-nama" wire:transition.opacity.duration.200ms class="mt-1 text-xs text-red-400">
+                                    {{ $message }}
+                                </p>                            @enderror
                         </div>
 
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -50,7 +47,8 @@
                                     class="mt-1 w-full rounded-lg border {{ $errors->has('email') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400"
                                     placeholder="nama@contoh.id">
                                 @error('email')
-                                    <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                                    <p wire:key="error-email" wire:transition.opacity.duration.200ms 
+                                    class="mt-1 text-xs text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
 
@@ -64,36 +62,29 @@
                                     <option value="admin">Admin</option>
                                 </select>
                                 @error('role')
-                                    <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                                    <p wire:key="error-role" wire:transition.opacity.duration.200ms 
+                                    class="mt-1 text-xs text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">
-                            <button type="button" command="close" commandfor="dialog" wire:click="resetForm"
+                            <button type="button" wire:click="cancelCreate"
                                 class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20">
                                 Cancel
                             </button>
 
-                            <button type="submit"
-                                class="rounded-md bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
-                                wire:loading.attr="disabled" wire:target="store" @disabled(!$this->canSave)
-                                {{-- tombol nonaktif bila belum valid --}}>
+                            <button type="submit" class="rounded-md bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+                                wire:loading.attr="disabled" wire:target="store" @disabled(!$this->canSave)>
+                                {{-- tombol nonaktif bila belum valid --}}
                                 <span wire:loading.remove wire:target="store">Save</span>
                                 <span wire:loading wire:target="store">Saving...</span>
                             </button>
                         </div>
                     </form>
                 </div>
-            </el-dialog-panel>
+            </div>
         </div>
-    </dialog>
-</el-dialog>
-
-<script type="module" src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1"></script>
-<script>
-    // Tutup dialog setelah sukses
-    window.addEventListener('close-dialog', () => {
-        document.getElementById('dialog')?.close();
-    });
-</script>
+    </div>
+    
+@endif

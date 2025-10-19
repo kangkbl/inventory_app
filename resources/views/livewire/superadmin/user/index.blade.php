@@ -4,9 +4,9 @@
         <div class="flex items-center gap-3 text-2xl font-bold text-gray-800 dark:text-white lg:pb-6">
             <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
                 fill="currentColor" viewBox="0 0 18 20">
-                <path d="@yield('icon')">
+                <path d="{{ $iconPath }}" />
             </svg>
-            <h1>@yield('title')</h1>
+            <h1>{{ $title }}</h1>
         </div>
         <div class="rounded-2xl border border-gray-200 bg-white lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
 
@@ -34,12 +34,10 @@
                     </button>
                     <button
                     type="button"
-                    command="show-modal"
-                    commandfor="dialog"
-                    class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition">
-                    <!-- icon -->
-                    Add Product
-                    </button>
+                        wire:click="openCreateModal"
+                        class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition">
+                        <!-- icon -->
+                        Add User
 
                 </div>
             </div>

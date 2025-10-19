@@ -14,6 +14,8 @@ class Index extends Component
     public string $nama = '';
     public string $email = '';
     public string $role = '';
+    public bool $showCreateModal = false;
+    public string $iconPath = 'M16 0H4a2 2 0 0 0-2 2v1H1a1 1 0 0 0 0 2h1v2H1a1 1 0 0 0 0 2h1v2H1a1 1 0 0 0 0 2h1v2H1a1 1 0 0 0 0 2h1v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2Zm-5.5 4.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM13.929 17H7.071a.5.5 0 0 1-.5-.5 3.935 3.935 0 1 1 7.858 0 .5.5 0 0 1-.5.5Z';
 
     public array $roleOptions = [
         'super_admin' => 'Super Admin',
@@ -25,6 +27,7 @@ class Index extends Component
         $data = array(
             'title' => 'User Management',
             'adduser' => 'Add User',
+            'iconPath' => $this->iconPath,
             'user' => User::where('name','like','%'.$this->search.'%')
                 ->orWhere('email','like','%'.$this->search.'%')
                 ->orWhere('role','like','%'.$this->search.'%')
@@ -65,6 +68,18 @@ class Index extends Component
             && $this->getErrorBag()->isEmpty();
     }
 
+    public function openCreateModal(): void
+    {
+        $this->resetForm();
+        $this->showCreateModal = true;
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->showCreateModal = false;
+        $this->resetForm();
+    }
+
     public function store()
     {
         $validated = $this->validate();
@@ -76,8 +91,7 @@ class Index extends Component
             'password' => bcrypt('default12345'),
         ]);
 
-        $this->resetForm();
-        $this->dispatch('close-dialog');
+        $this->cancelCreate();
         $this->dispatch('notify', body: 'User berhasil ditambahkan.');
         $this->dispatch('refresh-table');
     }
