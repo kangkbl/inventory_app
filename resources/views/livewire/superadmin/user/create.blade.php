@@ -1,10 +1,34 @@
-@if ($showCreateModal)
-    <div class="fixed inset-0 z-50" wire:keydown.escape.window="cancelCreate" aria-labelledby="dialog-title"
-        role="dialog" aria-modal="true">
-        <div class="absolute inset-0 bg-gray-900/50" wire:click="cancelCreate" aria-hidden="true"></div>
+<div x-data="{
+        openCreateModal: @entangle('showCreateModal').live,
+        closeModal() {
+            this.openCreateModal = false;
+            this.$nextTick(() => $wire.cancelCreate());
+        }
+    }" x-cloak x-on:keydown.escape.window="closeModal()">
+    <div
+        x-show="openCreateModal"
+        x-transition.opacity.duration.200ms
+        class="fixed inset-0 z-50 transition-opacity duration-200 ease-out"
+        aria-labelledby="dialog-title"
+        role="dialog"
+        aria-modal="true"
+    >
+        <div
+            x-show="openCreateModal"
+            x-transition.opacity.duration.200ms
+            class="absolute inset-0 bg-gray-900/50 transition-opacity duration-200 ease-out"
+            x-on:click="closeModal()"
+            aria-hidden="true"
+        ></div>
 
-        <div class="relative flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div class="relative w-full transform overflow-hidden rounded-lg bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:max-w-lg">
+        <div
+            class="relative flex min-h-full items-end justify-center p-4 text-center transition-opacity duration-200 ease-out sm:items-center sm:p-0"
+        >
+            <div
+                x-show="openCreateModal"
+                x-transition.scale.95.opacity.duration.300ms
+                class="relative w-full transform overflow-hidden rounded-lg bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:max-w-lg"
+            >
                 <div class="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="mb-3 flex items-center gap-3">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -18,8 +42,8 @@
                     {{-- Ringkas error paling pertama (opsional) --}}
                     @if ($errors->any())
                         <div wire:key="create-form-error-banner"
-                            wire:transition.opacity.duration.200ms
-                            class="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">                            {{ $errors->first() }}
+                            class="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">                            
+                            {{ $errors->first() }}
                         </div>
                     @endif
 
@@ -33,9 +57,10 @@
                                 class="mt-1 w-full rounded-lg border {{ $errors->has('nama') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400"
                                 placeholder="Masukkan nama">
                             @error('nama')
-                                <p wire:key="error-nama" wire:transition.opacity.duration.200ms class="mt-1 text-xs text-red-400">
+                                <p wire:key="error-nama" class="mt-1 text-xs text-red-400">
                                     {{ $message }}
-                                </p>                            @enderror
+                                </p>                            
+                                @enderror
                         </div>
 
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -47,8 +72,7 @@
                                     class="mt-1 w-full rounded-lg border {{ $errors->has('email') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400"
                                     placeholder="nama@contoh.id">
                                 @error('email')
-                                    <p wire:key="error-email" wire:transition.opacity.duration.200ms 
-                                    class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                                    <p wire:key="error-email" class="mt-1 text-xs text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
 
@@ -62,7 +86,7 @@
                                     <option value="admin">Admin</option>
                                 </select>
                                 @error('role')
-                                    <p wire:key="error-role" wire:transition.opacity.duration.200ms 
+                                    <p wire:key="error-role" 
                                     class="mt-1 text-xs text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -86,5 +110,4 @@
             </div>
         </div>
     </div>
-    
-@endif
+</div>

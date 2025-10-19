@@ -5,30 +5,154 @@ namespace App\Livewire\Superadmin\Barang;
 use App\Models\Barang;
 use Livewire\Component;
 
-
 class Index extends Component
 {
     use \Livewire\WithPagination;
+
     protected $paginateTheme = 'tailwind';
-    public $paginate='10';
-    public $search='';
-    public $nama='';
+
+    public $paginate = '10';
+    public $search = '';
+
+    public string $namaBarang = '';
+    public string $merk = '';
+    public string $kodeBarangBmn = '';
+    public string $kategori = '';
+    public string $lokasi = '';
+    public string $kondisi = '';
+    public string $jumlah = '';
+    public string $tahunPengadaan = '';
+    public string $keterangan = '';
+
+    public bool $showCreateModal = false;
+
+    public array $kondisiOptions = [
+        'Baik',
+        'Rusak Ringan',
+        'Rusak Berat',
+    ];
+
+    public string $iconPath = 'M5 2a1 1 0 0 0-1 1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1a1 1 0 0 0 1 1h1v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a1 1 0 1 0 0-2h-1v-1h1a1 1 0 1 0 0-2h-1V6h1a1 1 0 0 0 0-2h-1V3a1 1 0 0 0-1-1H5Zm2 3h6a1 1 0 0 1 1 1v6h-1v1H7v-1H6V6a1 1 0 0 1 1-1Zm1 2v2h2V7H8Zm0 3v2h2v-2H8Zm3-3v2h2V7h-2Zm0 3v2h2v-2h-2Z';
 
     public function render()
-    {   
-        $data = array(
-            'title' => 'Item Management',
+    {
+        $data = [
+            'title'     => 'Item Management',
             'addbarang' => 'Tambahkan Barang',
-            'barang' => Barang::where('nama_barang','like','%'.$this->search.'%')
-                ->orderBy('nama_barang','ASC')->paginate($this->paginate),
-        );
+            'iconPath'  => $this->iconPath,
+            'barang'    => Barang::where('nama_barang', 'like', '%' . $this->search . '%')
+                ->orderBy('nama_barang', 'ASC')->paginate($this->paginate),
+        ];
+
         return view('livewire.superadmin.barang.index', $data);
     }
 
-    public function store()
+    protected function rules(): array
     {
-        $this-> validate([
-            'nama_barang' => 'required'
+        $currentYear = (int) now()->year;
+
+        return [
+            'namaBarang'      => ['required', 'string', 'min:2'],
+            'merk'            => ['required', 'string', 'min:2'],
+            'kodeBarangBmn'   => ['required', 'string', 'max:50', 'unique:barangs,kode_barang_bmn'],
+            'kategori'        => ['required', 'string', 'min:2'],
+            'lokasi'          => ['required', 'string', 'min:2'],
+            'kondisi'         => ['required', 'string', 'in:' . implode(',', $this->kondisiOptions)],
+            'jumlah'          => ['required', 'integer', 'min:1'],
+            'tahunPengadaan'  => ['required', 'integer', 'between:1900,' . $currentYear],
+            'keterangan'      => ['nullable', 'string', 'max:500'],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'namaBarang.required'     => 'Nama barang wajib diisi.',
+            'namaBarang.min'          => 'Nama barang minimal 2 karakter.',
+            'merk.required'           => 'Merk wajib diisi.',
+            'merk.min'                => 'Merk minimal 2 karakter.',
+            'kodeBarangBmn.required'  => 'Kode barang BMN wajib diisi.',
+            'kodeBarangBmn.unique'    => 'Kode barang BMN sudah terdaftar.',
+            'kategori.required'       => 'Kategori wajib diisi.',
+            'lokasi.required'         => 'Lokasi wajib diisi.',
+            'kondisi.required'        => 'Kondisi wajib dipilih.',
+            'kondisi.in'              => 'Pilih kondisi yang tersedia.',
+            'jumlah.required'         => 'Jumlah wajib diisi.',
+            'jumlah.integer'          => 'Jumlah harus berupa angka.',
+            'jumlah.min'              => 'Jumlah minimal 1.',
+            'tahunPengadaan.required' => 'Tahun pengadaan wajib diisi.',
+            'tahunPengadaan.integer'  => 'Tahun pengadaan harus berupa angka.',
+            'tahunPengadaan.between'  => 'Tahun pengadaan harus antara 1900 hingga tahun sekarang.',
+            'keterangan.max'          => 'Keterangan maksimal 500 karakter.',
+        ];
+    }
+
+    public function updated($property): void
+    {
+        $this->validateOnly($property);
+    }
+
+    public function getCanSaveProperty(): bool
+    {
+        return trim($this->namaBarang) !== ''
+            && trim($this->merk) !== ''
+            && trim($this->kodeBarangBmn) !== ''
+            && trim($this->kategori) !== ''
+            && trim($this->lokasi) !== ''
+            && trim($this->kondisi) !== ''
+            && trim($this->jumlah) !== ''
+            && trim($this->tahunPengadaan) !== ''
+            && $this->getErrorBag()->isEmpty();
+    }
+
+    public function openCreateModal(): void
+    {
+        $this->resetForm();
+        $this->showCreateModal = true;
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->showCreateModal = false;
+        $this->resetForm();
+    }
+
+    public function store(): void
+    {
+        $validated = $this->validate();
+
+        Barang::create([
+            'nama_barang'      => trim($validated['namaBarang']),
+            'merk'             => trim($validated['merk']),
+            'kode_barang_bmn'  => strtoupper(trim($validated['kodeBarangBmn'])),
+            'kategori'         => trim($validated['kategori']),
+            'lokasi'           => trim($validated['lokasi']),
+            'kondisi'          => trim($validated['kondisi']),
+            'jumlah'           => (int) $validated['jumlah'],
+            'tahun_pengadaan'  => (int) $validated['tahunPengadaan'],
+            'keterangan'       => $validated['keterangan'] !== null ? trim($validated['keterangan']) : null,
         ]);
+
+        $this->cancelCreate();
+
+        $this->dispatch('notify', body: 'Barang berhasil ditambahkan.');
+        $this->dispatch('refresh-table');
+    }
+
+    public function resetForm(): void
+    {
+        $this->reset([
+            'namaBarang',
+            'merk',
+            'kodeBarangBmn',
+            'kategori',
+            'lokasi',
+            'kondisi',
+            'jumlah',
+            'tahunPengadaan',
+            'keterangan',
+        ]);
+
+        $this->resetValidation();
     }
 }
