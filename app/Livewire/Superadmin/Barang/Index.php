@@ -4,6 +4,7 @@ namespace App\Livewire\Superadmin\Barang;
 
 use App\Models\Barang;
 use Livewire\Component;
+use Illuminate\Validation\Rule;
 
 class Index extends Component
 {
@@ -25,6 +26,8 @@ class Index extends Component
     public string $keterangan = '';
 
     public bool $showCreateModal = false;
+    public bool $showEditModal = false;
+    public ?int $editingId = null;
 
     public array $kondisiOptions = [
         'Baik',
@@ -51,10 +54,16 @@ class Index extends Component
     {
         $currentYear = (int) now()->year;
 
+        $kodeRule = Rule::unique('barangs', 'kode_barang_bmn');
+
+        if ($this->showEditModal && $this->editingId) {
+            $kodeRule = $kodeRule->ignore($this->editingId);
+        }
+
         return [
             'namaBarang'      => ['required', 'string', 'min:2'],
             'merk'            => ['required', 'string', 'min:2'],
-            'kodeBarangBmn'   => ['required', 'string', 'max:50', 'unique:barangs,kode_barang_bmn'],
+            'kodeBarangBmn'   => ['required', 'string', 'max:50', $kodeRule],
             'kategori'        => ['required', 'string', 'min:2'],
             'lokasi'          => ['required', 'string', 'min:2'],
             'kondisi'         => ['required', 'string', 'in:' . implode(',', $this->kondisiOptions)],
@@ -117,9 +126,37 @@ class Index extends Component
         $this->resetForm();
     }
 
+    public function openEditModal(int $barangId): void
+    {
+        $barang = Barang::findOrFail($barangId);
+
+        $this->editingId = $barang->id;
+        $this->namaBarang = $barang->nama_barang;
+        $this->merk = $barang->merk;
+        $this->kodeBarangBmn = $barang->kode_barang_bmn;
+        $this->kategori = $barang->kategori;
+        $this->lokasi = $barang->lokasi;
+        $this->kondisi = $barang->kondisi;
+        $this->jumlah = (string) $barang->jumlah;
+        $this->tahunPengadaan = (string) $barang->tahun_pengadaan;
+        $this->keterangan = $barang->keterangan ?? '';
+
+        $this->resetValidation();
+        $this->showEditModal = true;
+    }
+
+    public function cancelEdit(): void
+    {
+        $this->showEditModal = false;
+        $this->editingId = null;
+        $this->resetForm();
+    }
+
     public function store(): void
     {
         $validated = $this->validate();
+
+        $keterangan = $validated['keterangan'];
 
         Barang::create([
             'nama_barang'      => trim($validated['namaBarang']),
@@ -130,13 +167,57 @@ class Index extends Component
             'kondisi'          => trim($validated['kondisi']),
             'jumlah'           => (int) $validated['jumlah'],
             'tahun_pengadaan'  => (int) $validated['tahunPengadaan'],
-            'keterangan'       => $validated['keterangan'] !== null ? trim($validated['keterangan']) : null,
+            'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
         ]);
 
         $this->cancelCreate();
 
         $this->dispatch('notify', body: 'Barang berhasil ditambahkan.');
         $this->dispatch('refresh-table');
+    }
+
+    public function update(): void
+    {
+        if (! $this->editingId) {
+            return;
+        }
+
+        $validated = $this->validate();
+
+        $barang = Barang::findOrFail($this->editingId);
+        $keterangan = $validated['keterangan'];
+
+        $barang->update([
+            'nama_barang'      => trim($validated['namaBarang']),
+            'merk'             => trim($validated['merk']),
+            'kode_barang_bmn'  => strtoupper(trim($validated['kodeBarangBmn'])),
+            'kategori'         => trim($validated['kategori']),
+            'lokasi'           => trim($validated['lokasi']),
+            'kondisi'          => trim($validated['kondisi']),
+            'jumlah'           => (int) $validated['jumlah'],
+            'tahun_pengadaan'  => (int) $validated['tahunPengadaan'],
+            'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
+        ]);
+
+        $this->cancelEdit();
+
+        $this->dispatch('notify', body: 'Barang berhasil diperbarui.');
+        $this->dispatch('refresh-table');
+    }
+
+    public function delete(int $barangId): void
+    {
+        $barang = Barang::findOrFail($barangId);
+
+        if ($this->editingId === $barangId) {
+            $this->cancelEdit();
+        }
+
+        $barang->delete();
+
+        $this->dispatch('notify', body: 'Barang berhasil dihapus.');
+        $this->dispatch('refresh-table');
+        $this->resetPage();
     }
 
     public function resetForm(): void
