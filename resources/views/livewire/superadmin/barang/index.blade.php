@@ -38,9 +38,31 @@
                         <!-- icon -->
                     {{ $addbarang }}
                     </button>
-
+                    
                 </div>
             </div>
+            @if ($categories->isNotEmpty())
+                <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+                    
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" wire:click="selectCategory(null)"
+                            class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition focus:outline-hidden focus:ring-2 focus:ring-brand-400 {{ $selectedCategory === null ? 'bg-brand-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20' }}">
+                            Semua
+                            <span class="text-xs font-semibold opacity-70">{{ $categories->sum('total') }}</span>
+                        </button>
+                        @foreach ($categories as $index => $category)
+                            <button type="button"
+                                wire:key="category-pill-{{ $index }}"
+                                wire:click="selectCategory({{ \Illuminate\Support\Js::from($category->kategori) }})"
+                                class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition focus:outline-hidden focus:ring-2 focus:ring-brand-400 {{ $selectedCategory === $category->kategori ? 'bg-brand-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20' }}">
+                                <span>{{ $category->kategori }}</span>
+                                <span class="text-xs font-semibold opacity-70">{{ $category->total }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+            
             <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
                 <div class="flex gap-3 sm:justify-between">
                     <div class="relative flex-1 sm:flex-auto">
@@ -284,7 +306,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-                        @foreach ($barang as $item)
+                        @forelse ($barang as $item)
                             <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                                 <td class="py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
                                     {{ $loop->iteration }}</td>
@@ -327,7 +349,13 @@
                                     </button>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="7" class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    Tidak ada barang yang cocok dengan filter saat ini.
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
                 <div class="mt-5">

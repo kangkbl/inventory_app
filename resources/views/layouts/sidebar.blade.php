@@ -139,60 +139,66 @@
         $pct = fn($n) => $totalItems ? round(($n / $totalItems) * 100) : 0;
     @endphp
 
-    <div class="rounded-2xl bg-gray-50 p-4 dark:bg-white/5">
-  <div class="mb-3 flex items-center justify-between">
-    <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-100">Snapshot Kondisi</h4>
-    <span class="rounded-md bg-indigo-600/10 px-2 py-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-      {{ $totalItems }} items
-    </span>
-  </div>
+    <div
+      class="rounded-2xl bg-gray-50 p-4 dark:bg-white/5"
+      data-snapshot-root
+      data-snapshot-endpoint="{{ route('snapshot-kondisi') }}"
+    >
+        <div class="mb-3 flex items-center justify-between">
+            <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-100">Snapshot Kondisi</h4>
+            <span class="rounded-md bg-indigo-600/10 px-2 py-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+                <span data-snapshot-total>{{ $totalItems }}</span> items
+            </span>
+        </div>
 
-  <div class="grid grid-cols-3 gap-2 text-center">
-    {{-- BAIK --}}
-    <a href="{{ route('superadmin.barang.index', ['kondisi' => 'baik']) }}"
-       class="rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/10">
-      <div class="mb-1 flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-        <span class="text-xs font-medium">Baik</span>
-      </div>
-      <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $baik }}</div>
-      <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ $pct($baik) }}%</div>
-    </a>
+        <div class="grid grid-cols-3 gap-2 text-center">
+            {{-- BAIK --}}
+            <a href="{{ route('superadmin.barang.index', ['kondisi' => 'baik']) }}"
+               class="rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/10">
+                <div class="mb-1 flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs font-medium">Baik</span>
+                </div>
+                <div class="text-lg font-bold text-gray-900 dark:text-white" data-snapshot-count="baik">{{ $baik }}</div>
+                <div class="text-[11px] text-gray-500 dark:text-gray-400" data-snapshot-percent="baik">{{ $pct($baik) }}%</div>
+            </a>
 
-    {{-- CUKUP --}}
-    <a href="{{ route('superadmin.barang.index', ['kondisi' => 'rusak']) }}"
-       class="rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/10">
-      <div class="mb-1 flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-        <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-        <span class="text-xs font-medium">Rusak</span>
-      </div>
-      <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $rusak }}</div>
-      <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ $pct($rusak) }}%</div>
-    </a>
+            {{-- CUKUP --}}
+            <a href="{{ route('superadmin.barang.index', ['kondisi' => 'rusak']) }}"
+               class="rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/10">
+                <div class="mb-1 flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                    <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                    <span class="text-xs font-medium">Rusak</span>
+                </div>
+                <div class="text-lg font-bold text-gray-900 dark:text-white" data-snapshot-count="rusak">{{ $rusak }}</div>
+                <div class="text-[11px] text-gray-500 dark:text-gray-400" data-snapshot-percent="rusak">{{ $pct($rusak) }}%</div>
+            </a>
 
-    {{-- RUSAK --}}
-    <a href="{{ route('superadmin.barang.index', ['kondisi' => 'perbaikan']) }}"
-       class="rounded-lg border border-gray-200 pt-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/10">
-      <div class="mb-1 flex items-center justify-center gap-1 text-rose-600 dark:text-rose-400">
-        <span class="h-2 w-2 rounded-full bg-rose-500"></span>
-        <span class="text-xs font-medium">Perbaikan</span>
-      </div>
-      <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $perbaikan }}</div>
-      <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ $pct($perbaikan) }}%</div>
-    </a>
-  </div>
+            {{-- RUSAK --}}
+            <a href="{{ route('superadmin.barang.index', ['kondisi' => 'perbaikan']) }}"
+               class="rounded-lg border border-gray-200 pt-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/10">
+                <div class="mb-1 flex items-center justify-center gap-1 text-rose-600 dark:text-rose-400">
+                    <span class="h-2 w-2 rounded-full bg-rose-500"></span>
+                    <span class="text-xs font-medium">Perbaikan</span>
+                </div>
+                <div class="text-lg font-bold text-gray-900 dark:text-white" data-snapshot-count="perbaikan">{{ $perbaikan }}</div>
+                <div class="text-[11px] text-gray-500 dark:text-gray-400" data-snapshot-percent="perbaikan">{{ $pct($perbaikan) }}%</div>
+            </a>
+        </div>
 
-  {{-- Progress ringkas (opsional) --}}
-  <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200/70 dark:bg-white/10">
-    <div class="h-full bg-emerald-500" style="width: {{ $pct($baik) }}%"></div>
-    <div class="h-full -mt-2 bg-amber-500" style="width: {{ $pct($rusak) }}%"></div>
-    <div class="h-full -mt-2 bg-rose-500" style="width: {{ $pct($perbaikan) }}%"></div>
-  </div>
+        {{-- Progress ringkas (opsional) --}}
+        <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200/70 dark:bg-white/10">
+            <div class="h-full bg-emerald-500" data-snapshot-bar="baik" style="width: {{ $pct($baik) }}%"></div>
+            <div class="h-full -mt-2 bg-amber-500" data-snapshot-bar="rusak" style="width: {{ $pct($rusak) }}%"></div>
+            <div class="h-full -mt-2 bg-rose-500" data-snapshot-bar="perbaikan" style="width: {{ $pct($perbaikan) }}%"></div>
+        </div>
 
-  @if($lainnya > 0)
-    <div class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-      Lainnya: {{ $lainnya }} item (label kondisi berbeda)
+        <div
+            class="mt-2 text-[11px] text-gray-500 dark:text-gray-400 {{ $lainnya > 0 ? '' : 'hidden' }}"
+            data-snapshot-lainnya-container
+        >
+            Lainnya: <span data-snapshot-count="lainnya">{{ $lainnya }}</span> item (label kondisi berbeda)
+        </div>
     </div>
-  @endif
-</div>
+
 </aside>

@@ -3,12 +3,13 @@
 namespace App\Livewire\Superadmin\Barang;
 
 use App\Models\Barang;
-use Livewire\Component;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
-
+use Livewire\Component;
+use Livewire\WithPagination;
 class Index extends Component
 {
-    use \Livewire\WithPagination;
+    use WithPagination;
 
     protected $paginateTheme = 'tailwind';
 
@@ -36,18 +37,85 @@ class Index extends Component
     ];
 
     public string $iconPath = 'M5 2a1 1 0 0 0-1 1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1a1 1 0 0 0 1 1h1v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a1 1 0 1 0 0-2h-1v-1h1a1 1 0 1 0 0-2h-1V6h1a1 1 0 0 0 0-2h-1V3a1 1 0 0 0-1-1H5Zm2 3h6a1 1 0 0 1 1 1v6h-1v1H7v-1H6V6a1 1 0 0 1 1-1Zm1 2v2h2V7H8Zm0 3v2h2v-2H8Zm3-3v2h2V7h-2Zm0 3v2h2v-2h-2Z';
-
+    
+    public ?string $selectedCategory = null;
+    
     public function render()
     {
-        $data = [
-            'title'     => 'Item Management',
-            'addbarang' => 'Tambahkan Barang',
-            'iconPath'  => $this->iconPath,
-            'barang'    => Barang::where('nama_barang', 'like', '%' . $this->search . '%')
-                ->orderBy('nama_barang', 'ASC')->paginate($this->paginate),
-        ];
+        $query = $this->baseQuery();
 
-        return view('livewire.superadmin.barang.index', $data);
+        $barang = (clone $query)
+            ->orderBy('nama_barang', 'ASC')
+            ->paginate($this->paginate);
+
+        $previewItems = $this->selectedCategory
+            ? Barang::query()
+                ->where('kategori', $this->selectedCategory)
+                ->orderByDesc('updated_at')
+                ->take(4)
+                ->get()
+            : collect();
+
+        $categories = Barang::select('kategori')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('kategori')
+            ->orderBy('kategori')
+            ->get();
+
+        return view('livewire.superadmin.barang.index', [
+            'title'            => 'Item Management',
+            'addbarang'        => 'Tambahkan Barang',
+            'iconPath'         => $this->iconPath,
+            'barang'           => $barang,
+            'categories'       => $categories,
+            'previewItems'     => $previewItems,
+            'selectedCategory' => $this->selectedCategory,
+        ]);
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+
+public function updatedPaginate(): void
+    {
+        $this->resetPage();
+    }
+
+    public function selectCategory(?string $category = null): void
+    {
+        $normalized = $category !== null ? trim($category) : null;
+
+        if ($normalized === '') {
+            $normalized = null;
+        }
+
+        $this->selectedCategory = $this->selectedCategory === $normalized ? null : $normalized;
+        $this->resetPage();
+    }
+
+    protected function baseQuery(): Builder
+    {
+        $query = Barang::query();
+
+        $term = trim($this->search);
+
+        if ($term !== '') {
+            $query->where(function (Builder $builder) use ($term) {
+                $builder
+                    ->where('nama_barang', 'like', "%{$term}%")
+                    ->orWhere('merk', 'like', "%{$term}%")
+                    ->orWhere('kategori', 'like', "%{$term}%");
+            });
+        }
+
+        if ($this->selectedCategory) {
+            $query->where('kategori', $this->selectedCategory);
+        }
+
+        return $query;
     }
 
     protected function rules(): array
@@ -174,6 +242,7 @@ class Index extends Component
 
         $this->dispatch('notify', body: 'Barang berhasil ditambahkan.');
         $this->dispatch('refresh-table');
+        $this->dispatch('snapshot-refresh');
     }
 
     public function update(): void
@@ -203,6 +272,7 @@ class Index extends Component
 
         $this->dispatch('notify', body: 'Barang berhasil diperbarui.');
         $this->dispatch('refresh-table');
+        $this->dispatch('snapshot-refresh');
     }
 
     public function delete(int $barangId): void
@@ -217,6 +287,7 @@ class Index extends Component
 
         $this->dispatch('notify', body: 'Barang berhasil dihapus.');
         $this->dispatch('refresh-table');
+        $this->dispatch('snapshot-refresh');
         $this->resetPage();
     }
 
@@ -235,5 +306,10 @@ class Index extends Component
         ]);
 
         $this->resetValidation();
+    }
+    
+    protected function dispatchSnapshotRefresh(): void
+    {
+        $this->dispatch('barang-snapshot-refresh')->to('partials.snapshot-kondisi');
     }
 }

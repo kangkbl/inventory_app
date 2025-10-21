@@ -164,6 +164,91 @@ function initGlobalEsc() {
   });
 }
 
+// === Snapshot kondisi ===
+function initSnapshot(root = document) {
+  const container = root.querySelector('[data-snapshot-root]');
+  if (!container) return;
+
+  const endpoint = container.getAttribute('data-snapshot-endpoint');
+  if (!endpoint) return;
+
+  const setText = (selector, value) => {
+    const el = container.querySelector(selector);
+    if (el) el.textContent = value;
+  };
+
+  const applyData = (payload) => {
+    const counts = payload?.counts ?? {};
+    const percentages = payload?.percentages ?? {};
+
+    setText('[data-snapshot-total]', String(payload?.total ?? 0));
+    setText('[data-snapshot-count="baik"]', String(counts.baik ?? 0));
+    setText('[data-snapshot-count="rusak"]', String(counts.rusak ?? 0));
+    setText('[data-snapshot-count="perbaikan"]', String(counts.perbaikan ?? 0));
+    setText('[data-snapshot-count="lainnya"]', String(counts.lainnya ?? 0));
+
+    const updatePercent = (key) => {
+      const pct = Number.isFinite(percentages[key]) ? percentages[key] : 0;
+      setText(`[data-snapshot-percent="${key}"]`, `${pct}%`);
+      const bar = container.querySelector(`[data-snapshot-bar="${key}"]`);
+      if (bar) bar.style.width = `${pct}%`;
+    };
+
+    updatePercent('baik');
+    updatePercent('rusak');
+    updatePercent('perbaikan');
+
+    const lainnyaContainer = container.querySelector('[data-snapshot-lainnya-container]');
+    if (lainnyaContainer) {
+      const lain = Number(counts.lainnya ?? 0);
+      lainnyaContainer.classList.toggle('hidden', lain <= 0);
+    }
+  };
+
+  let fetching = false;
+  let queued = false;
+
+  const refresh = async () => {
+    if (fetching) {
+      queued = true;
+      return;
+    }
+
+    fetching = true;
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        cache: 'no-store',
+      });
+
+      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+
+      const data = await response.json();
+      applyData(data);
+    } catch (err) {
+      console.error('Gagal memuat snapshot kondisi', err);
+    } finally {
+      fetching = false;
+      if (queued) {
+        queued = false;
+        refresh();
+      }
+    }
+  };
+
+  if (!container.dataset.snapshotBound) {
+    container.dataset.snapshotBound = '1';
+    bindOnce('snapshotRefreshListener', () => {
+      window.addEventListener('snapshot-refresh', () => refresh());
+    });
+  }
+
+  refresh();
+}
+
 // === Boot (idempotent) ===
 function bootUI(root = document) {
   initTheme(root);
@@ -171,6 +256,7 @@ function bootUI(root = document) {
   initTopbarMenu(root);
   initDropdowns(root);
   initGlobalEsc();
+  initSnapshot(root);
 }
 
 // === Start on first load & re-init on SPA navigation ===
