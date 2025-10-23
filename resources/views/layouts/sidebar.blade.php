@@ -43,8 +43,8 @@
                 </li>
 
                 <li>
-                    <a href="/analytics"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5">
+                    <a href="{{ route('analytics.index') }}"
+                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5 @yield('menuAnalytics')">
                         <svg class="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M5 9h3v10H5V9Zm5-4h3v14h-3V5Zm5 7h3v7h-3v-7Z" />
                         </svg>
@@ -53,8 +53,8 @@
                 </li>
 
                 <li>
-                    <a href="/stocks"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5">
+                    <a href="{{ route('stocks.index') }}"
+                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5 @yield('menuStocks')">
                         <svg class="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M3 13l4-4 4 4 6-6 4 4v5H3v-3Z" />
                         </svg>
@@ -108,8 +108,8 @@
             <h3 class="menu-group-title px-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ADMIN</h3>
             <ul class="mt-2 space-y-1">
                 <li>
-                    <a href="/basic-tables"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5">
+                    <a href="{{ route('admin.barang.index') }}"
+                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5 @yield('menuAdminBarang')">
                         <svg class="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path fill-rule="evenodd" clip-rule="evenodd"
                                 d="M5.5 3.25h13A2.25 2.25 0 0 1 20.75 5.5v13A2.25 2.25 0 0 1 18.5 20.75h-13A2.25 2.25 0 0 1 3.25 18.5v-13A2.25 2.25 0 0 1 5.5 3.25Zm13 4.083H5.5V8.75h13V7.333Zm0 2.75H15.416v3.833H18.5v-3.833Zm-5.584 0H10.083v3.833h2.833v-3.833ZM8.583 10.083H5.5v3.833h3.083v-3.833Z" />
