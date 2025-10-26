@@ -38,10 +38,30 @@ function applySidebarCollapsed(collapsed) {
   s.classList.toggle("lg:w-24", collapsed);
 
   // hide texts on lg only
-  const hideLg = qsa(".menu-item-text, .menu-group-title, .promo-box, .logo", s);
+  const hideLg = qsa(".menu-item-text, .menu-group-title, .promo-box, .logo-title", s);
   const logoIcon = qsa(".logo-icon", s);
+  const jstCent = qsa(".minimize-side-bar", s)
+  const txtCent = qsa(".snapshot-sidebar", s);
+  txtCent.forEach(el => el.classList.toggle("text-center", collapsed));
+  txtCent.forEach(el => el.classList.toggle("justify-center", collapsed));
+  txtCent.forEach(el => el.classList.toggle("justify-between", !collapsed));
   hideLg.forEach(el => el.classList.toggle("lg:hidden", collapsed));
+  jstCent.forEach(el => el.classList.toggle("justify-center", collapsed));
   logoIcon.forEach(el => el.classList.toggle("lg:hidden", !collapsed));
+  
+  const snapshotLayout = s.querySelector('[data-snapshot-layout]');
+  if (snapshotLayout) {
+    snapshotLayout.classList.toggle('flex-col', collapsed);
+    snapshotLayout.classList.toggle('flex-row', !collapsed);
+    snapshotLayout.classList.toggle('items-stretch', !collapsed);
+
+    qsa('[data-snapshot-item]', snapshotLayout).forEach(item => {
+      item.classList.toggle('w-full', collapsed);
+      item.classList.toggle('flex-1', !collapsed);
+      item.classList.toggle('lg:border-hidden', collapsed);
+      item.classList.toggle('gap-1', !collapsed);
+    });
+  }
 }
 function openMobileSidebar() {
   const s = qs("#sidebar"); if (!s) return;

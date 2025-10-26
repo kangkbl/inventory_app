@@ -41,7 +41,7 @@ class BarangFactory extends Factory
             'kode_barang_bmn'   => strtoupper($faker->unique()->bothify('BMN-####/##/??')),
             'kategori'          => $faker->randomElement($kategori),
             'lokasi'            => $faker->randomElement($lokasi),
-            'kondisi'           => $faker->randomElement(['baik','cukup','rusak','perbaikan']),
+            'kondisi'           => $faker->randomElement(['baik','rusak','perbaikan']),
             'jumlah'            => $faker->numberBetween(1, 20),
             // Kolom YEAR -> isi angka 4 digit
             'tahun_pengadaan'   => $faker->numberBetween(2010, (int) date('Y')),
