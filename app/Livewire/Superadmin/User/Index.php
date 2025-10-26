@@ -3,8 +3,10 @@
 namespace App\Livewire\Superadmin\User;
 
 use App\Models\User;
-use Livewire\Component;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\On;
+use Livewire\Component;
+
 
 class Index extends Component
 {
@@ -145,6 +147,20 @@ class Index extends Component
         $this->dispatch('refresh-table');
     }
 
+    public function confirmDelete(int $userId): void
+    {
+        $this->dispatch('confirm-delete',
+            id: $userId,
+            eventName: 'superadmin-user-delete',
+            payloadKey: 'userId',
+            title: 'Hapus Pengguna?',
+            text: 'Pengguna yang dihapus tidak dapat dikembalikan.',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+        );
+    }
+
+    #[On('superadmin-user-delete')]
     public function delete(int $userId): void
     {
         $user = User::findOrFail($userId);

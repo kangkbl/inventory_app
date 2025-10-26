@@ -5,6 +5,7 @@ namespace App\Livewire\Superadmin\Kategori;
 
 use App\Models\Kategori;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -145,6 +146,20 @@ class Index extends Component
         $this->dispatch('refresh-table');
     }
 
+    public function confirmDelete(int $kategoriId): void
+    {
+        $this->dispatch('confirm-delete',
+            id: $kategoriId,
+            eventName: 'superadmin-kategori-delete',
+            payloadKey: 'kategoriId',
+            title: 'Hapus Kategori?',
+            text: 'Kategori yang dihapus tidak dapat dikembalikan.',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+        );
+    }
+
+    #[On('superadmin-kategori-delete')]
     public function delete(int $kategoriId): void
     {
         $kategori = Kategori::findOrFail($kategoriId);

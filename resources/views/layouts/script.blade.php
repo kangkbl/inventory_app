@@ -189,12 +189,80 @@ onReady(() => {
 })();
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
   window.addEventListener('close-dialog', () => {
     document.getElementById('dialog')?.close();
   });
   window.addEventListener('notify', (e) => {
-    // tampilkan toast sederhana
-    console.log(e.detail?.body || 'OK');
+    const detail = e.detail ?? {};
+    const message = detail.body ?? 'Perubahan berhasil disimpan.';
+    const title = detail.title ?? 'Berhasil';
+    const icon = detail.icon ?? 'success';
+    const timer = detail.timer ?? 2000;
+    const showConfirmButton = detail.showConfirmButton ?? false;
+
+    if (window.Swal) {
+      Swal.fire({
+        icon,
+        title,
+        text: message,
+        timer,
+        timerProgressBar: timer > 0,
+        showConfirmButton,
+      });
+    } else {
+      // fallback sederhana bila SweetAlert belum termuat
+      alert(message);
+    }
+  });
+
+  window.addEventListener('confirm-delete', (e) => {
+    const detail = e.detail ?? {};
+    const {
+      id,
+      eventName,
+      event: legacyEvent,
+      title = 'Hapus data?',
+      text = 'Tindakan ini tidak dapat dibatalkan.',
+      icon = 'warning',
+      confirmButtonText = 'Ya, hapus',
+      cancelButtonText = 'Batal',
+      payloadKey = 'id',
+    } = detail;
+
+    const resolvedEvent = eventName ?? legacyEvent ?? '';
+
+    if (!resolvedEvent || typeof id === 'undefined' || id === null) {
+      return;
+    }
+
+    const dispatchDelete = () => {
+      if (typeof Livewire !== 'undefined' && typeof Livewire.dispatch === 'function') {
+        Livewire.dispatch(resolvedEvent, { [payloadKey]: id });
+      }
+    };
+
+    if (!window.Swal) {
+      if (window.confirm(text)) {
+        dispatchDelete();
+      }
+      return;
+    }
+
+    Swal.fire({
+      title,
+      text,
+      icon,
+      showCancelButton: true,
+      confirmButtonText,
+      cancelButtonText,
+      reverseButtons: true,
+      focusCancel: true,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        dispatchDelete();
+      }
+    });
   });
 </script>

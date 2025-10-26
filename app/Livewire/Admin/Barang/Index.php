@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Barang;
 use App\Models\Barang;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 class Index extends Component
@@ -275,6 +276,20 @@ public function updatedPaginate(): void
         $this->dispatch('snapshot-refresh');
     }
 
+    public function confirmDelete(int $barangId): void
+    {
+        $this->dispatch('confirm-delete',
+            id: $barangId,
+            eventName: 'admin-barang-delete',
+            payloadKey: 'barangId',
+            title: 'Hapus Barang?',
+            text: 'Data barang yang dihapus tidak dapat dikembalikan.',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+        );
+    }
+
+    #[On('admin-barang-delete')]
     public function delete(int $barangId): void
     {
         $barang = Barang::findOrFail($barangId);

@@ -96,9 +96,8 @@
                                             </svg>
                                             Edit
                                         </button>
-                                        <button type="button" wire:click="delete({{ $kategori->id }})"
-                                            class="inline-flex items-center gap-1 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-500 transition hover:bg-red-500/20"
-                                            onclick="confirm('Hapus kategori ini?') || event.stopImmediatePropagation()">
+                                        <button type="button" wire:click="confirmDelete({{ $kategori->id }})"
+                                            class="inline-flex items-center gap-1 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-500 transition hover:bg-red-500/20">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                                 stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                                 <path stroke-linecap="round" stroke-linejoin="round"
