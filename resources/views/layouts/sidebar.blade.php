@@ -41,26 +41,6 @@
                         <span class="menu-item-text">Dashboard</span>
                     </a>
                 </li>
-
-                <li>
-                    <a href="{{ url('/#analytics') }}"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5 @yield('menuAnalytics')">
-                        <svg class="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M5 9h3v10H5V9Zm5-4h3v14h-3V5Zm5 7h3v7h-3v-7Z" />
-                        </svg>
-                        <span class="menu-item-text">Analytics</span>
-                    </a>
-                </li>
-
-                <li>
-                    <a href="{{ url('/#stocks') }}"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5 @yield('menuStocks')">
-                        <svg class="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M3 13l4-4 4 4 6-6 4 4v5H3v-3Z" />
-                        </svg>
-                        <span class="menu-item-text">Stocks</span>
-                    </a>
-                </li>
             </ul>
         </div>
 
