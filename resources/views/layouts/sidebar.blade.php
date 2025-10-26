@@ -1,5 +1,5 @@
 <aside id="sidebar"
-    class="sidebar fixed inset-y-0 left-0 z-[9999] flex h-screen w-72 -translate-x-full flex-col overflow-y-auto border-r border-gray-200 bg-white px-4 py-6 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-black lg:static lg:translate-x-0 lg:w-72">
+    class="sidebar fixed inset-y-0 left-0 z-[9999] flex h-screen w-72 -translate-x-full flex-col overflow-y-auto border-r border-gray-200 bg-white px-4 py-6 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-black lg:sticky lg:top-0 lg:translate-x-0 lg:w-72">
 
     <!-- Header logo -->
     <div class="px-2 flex items-center justify-between pb-6">

@@ -225,5 +225,5 @@
                 </ul>
             </article>
         </section>
-    </main>
+     </main>
 @endsection
