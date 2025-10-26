@@ -5,8 +5,6 @@ use App\Http\Controllers\SnapshotKondisiController;
 
 Route::view('/', 'index')->name('dashboard');
 
-Route::view('/analytics', 'analytics.index')->name('analytics.index');
-Route::view('/stocks', 'stocks.index')->name('stocks.index');
 Route::view('/admin/barang', 'admin.barang.index')->name('admin.barang.index');
 
 Route::view('superadmin/user', 'superadmin.user.index')->name('superadmin.user.index');
