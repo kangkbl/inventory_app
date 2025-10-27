@@ -5,6 +5,11 @@
 
 @section('content')
     @php
+        $user = auth()->user();
+        $barangIndexRoute = $user?->role === 'Admin'
+            ? route('admin.barang.index')
+            : route('superadmin.barang.index');
+
         $hasBarangModel = class_exists(\App\Models\Barang::class);
         $barangTableExists = $hasBarangModel && \Illuminate\Support\Facades\Schema::hasTable('barangs');
         $barangRecords = $barangTableExists ? \App\Models\Barang::all() : collect();
@@ -109,7 +114,7 @@
                     Pantau statistik utama dan aktivitas terbaru gudang Anda dari satu tempat.
                 </p>
             </div>
-            <a href="{{ route('superadmin.barang.index') }}"
+            <a href="{{ $barangIndexRoute }}"
                class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500">
                 Lihat Semua Barang
             </a>

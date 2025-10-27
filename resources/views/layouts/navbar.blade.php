@@ -46,6 +46,12 @@
 
 
                 <!-- Notification -->
+                @php
+                    $user = auth()->user();
+                    $displayName = $user?->name ?? 'Pengguna';
+                    $displayEmail = $user?->email ?? 'pengguna@example.com';
+                    $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($displayName) . '&background=4f46e5&color=fff';
+                @endphp
                 <div class="relative">
                     <button id="btn-notif"
                         class="relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
@@ -102,9 +108,9 @@
                         class="flex items-center rounded-lg px-2 py-1 text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                         aria-haspopup="menu" aria-expanded="false" aria-controls="panel-user">
                         <span class="mr-2 h-9 w-9 overflow-hidden rounded-full">
-                            <img src="https://raw.githubusercontent.com/kangkbl/rifzalzp/refs/heads/main/PAS%20FOTO_RIFZAL%20ZANDIKA%20PUTRA.jpg" alt="User" class="h-9 w-9 object-cover" />
+                            <img src="{{ $avatarUrl }}" alt="{{ $displayName }}" class="h-9 w-9 object-cover" />
                         </span>
-                        <span class="hidden text-sm font-medium sm:block">Rifzal Zandika Putra</span>
+                        <span class="hidden text-sm font-medium sm:block">{{ $displayName }}</span>
                         <svg class="ml-1 h-5 w-5 stroke-gray-500 dark:stroke-gray-400" viewBox="0 0 18 20"
                             fill="none">
                             <path d="M4.3125 8.65625L9 13.3437L13.6875 8.65625" stroke-width="1.5"
@@ -115,18 +121,21 @@
                         class="invisible absolute right-0 mt-3 w-64 translate-y-2 rounded-2xl border border-gray-200 bg-white p-3 opacity-0 shadow-xl transition-all duration-150 dark:border-gray-800 dark:bg-gray-900"
                         role="menu" aria-labelledby="btn-user">
                         <div>
-                            <span class="block text-sm font-medium text-gray-800 dark:text-gray-300">Rifzal Zandika Putra</span>
+                            <span class="block text-sm font-medium text-gray-800 dark:text-gray-300">{{ $displayName }}</span>
                             <span
-                                class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">randomuser@pimjo.com</span>
+                                class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">{{ $displayEmail }}</span>
                         </div>
-                        <button
-                            class="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">
-                            <svg class="h-6 w-6 fill-gray-500" viewBox="0 0 24 24">
-                                <path fill-rule="evenodd" clip-rule="evenodd"
-                                    d="M15.1 19.247a.75.75 0 0 1-.75-.75V14.245h-1.5v4.252c0 1.243 1.007 2.25 2.25 2.25H18.5a2.25 2.25 0 0 0 2.25-2.25V5.496A2.25 2.25 0 0 0 18.5 3.246h-3.4a2.25 2.25 0 0 0-2.25 2.25v4.249h1.5V5.496a.75.75 0 0 1 .75-.75H18.5a.75.75 0 0 1 .75.75V18.497a.75.75 0 0 1-.75.75H15.1ZM3.251 11.998c0 .216.091.41.238.548l4.607 4.61a.75.75 0 1 0 1.062-1.059L6.81 12.748H16a.75.75 0 0 0 0-1.5H6.815l2.343-2.343a.75.75 0 1 0-1.061-1.061l-4.572 4.572a.75.75 0 0 0-.274.582Z" />
-                            </svg>
-                            Sign out
-                        </button>
+                        <form method="POST" action="{{ route('logout') }}" class="mt-3">
+                            @csrf
+                            <button type="submit"
+                                class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">
+                                <svg class="h-6 w-6 fill-gray-500" viewBox="0 0 24 24">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M15.1 19.247a.75.75 0 0 1-.75-.75V14.245h-1.5v4.252c0 1.243 1.007 2.25 2.25 2.25H18.5a2.25 2.25 0 0 0 2.25-2.25V5.496A2.25 2.25 0 0 0 18.5 3.246h-3.4a2.25 2.25 0 0 0-2.25 2.25v4.249h1.5V5.496a.75.75 0 0 1 .75-.75H18.5a.75.75 0 0 1 .75.75V18.497a.75.75 0 0 1-.75.75H15.1ZM3.251 11.998c0 .216.091.41.238.548l4.607 4.61a.75.75 0 1 0 1.062-1.059L6.81 12.748H16a.75.75 0 0 0 0-1.5H6.815l2.343-2.343a.75.75 0 1 0-1.061-1.061l-4.572 4.572a.75.75 0 0 0-.274.582Z" />
+                                </svg>
+                                Keluar
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
