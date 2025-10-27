@@ -17,7 +17,7 @@ class EnsureUserHasRole
         $user = Auth::user();
 
         if (! $user || (count($roles) && ! in_array($user->role, $roles, true))) {
-            abort(403);
+            return redirect()->route('dashboard');
         }
 
         return $next($request);

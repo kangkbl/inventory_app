@@ -91,6 +91,18 @@
                                     class="mt-1 text-xs text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
+                            
+                            {{-- Password --}}
+                            <div>
+                                <label for="password" class="block text-sm text-gray-300">Password</label>
+                                <input id="password" type="password" autocomplete="new-password"
+                                    wire:model.live.debounce.400ms="password"
+                                    class="mt-1 w-full rounded-lg border {{ $errors->has('password') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400"
+                                    placeholder="Masukkan password">
+                                @error('password')
+                                    <p wire:key="error-password" class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">

@@ -4,6 +4,7 @@ namespace App\Livewire\Superadmin\User;
 
 use App\Models\User;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -17,6 +18,7 @@ class Index extends Component
     public string $nama = '';
     public string $email = '';
     public string $role = '';
+    public string $password = '';
     public bool $showCreateModal = false;
     public bool $showEditModal = false;
     public ?int $editingId = null;
@@ -49,11 +51,17 @@ class Index extends Component
             $emailRule = $emailRule->ignore($this->editingId);
         }
 
-        return [
+        $rules = [
             'nama'  => ['required','string','min:2'],
             'email' => ['required','email', $emailRule],
             'role'  => ['required','in:Super Admin,Admin'],
         ];
+
+        if ($this->showCreateModal) {
+            $rules['password'] = ['required', 'string', 'min:8'];
+        }
+
+        return $rules;
     }
 
     protected function messages(): array
@@ -66,6 +74,8 @@ class Index extends Component
             'email.unique'   => 'Email sudah terdaftar.',
             'role.required'  => 'Role wajib dipilih.',
             'role.in'        => 'Role harus Super Admin atau Admin.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min'      => 'Password minimal 8 karakter.',
         ];
     }
     
@@ -73,10 +83,16 @@ class Index extends Component
 
     public function getCanSaveProperty(): bool
     {
-        return trim($this->nama) !== ''
+        $canSave = trim($this->nama) !== ''
             && trim($this->email) !== ''
             && trim($this->role) !== ''
             && $this->getErrorBag()->isEmpty();
+
+        if ($this->showCreateModal) {
+            $canSave = $canSave && trim($this->password) !== '';
+        }
+
+        return $canSave;
     }
 
     public function openCreateModal(): void
@@ -119,7 +135,7 @@ class Index extends Component
             'name'     => $validated['nama'],
             'email'    => $validated['email'],
             'role'     => $validated['role'], // 'Super Admin' atau 'Admin'
-            'password' => bcrypt('default12345'),
+            'password' => Hash::make($validated['password']),
         ]);
 
         $this->cancelCreate();
@@ -178,7 +194,7 @@ class Index extends Component
     
     public function resetForm()
     {
-        $this->reset(['nama','email','role']);
+        $this->reset(['nama','email','role','password']);
         $this->resetValidation();
     }
 
