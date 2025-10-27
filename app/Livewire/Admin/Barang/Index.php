@@ -29,7 +29,10 @@ class Index extends Component
 
     public bool $showCreateModal = false;
     public bool $showEditModal = false;
+    public bool $showDetailModal = false;
     public ?int $editingId = null;
+    public array $detailBarang = [];
+
 
     public array $kondisiOptions = [
         'Baik',
@@ -244,6 +247,34 @@ public function updatedPaginate(): void
         $this->dispatch('notify', body: 'Barang berhasil ditambahkan.');
         $this->dispatch('refresh-table');
         $this->dispatch('snapshot-refresh');
+    }
+
+    
+    public function openDetailModal(int $barangId): void
+    {
+        $barang = Barang::findOrFail($barangId);
+
+        $this->detailBarang = [
+            'nama_barang'     => $barang->nama_barang,
+            'merk'            => $barang->merk,
+            'kode_barang_bmn' => $barang->kode_barang_bmn,
+            'kategori'        => $barang->kategori,
+            'lokasi'          => $barang->lokasi,
+            'kondisi'         => $barang->kondisi,
+            'jumlah'          => (string) $barang->jumlah,
+            'tahun_pengadaan' => (string) $barang->tahun_pengadaan,
+            'keterangan'      => $barang->keterangan ?? '-',
+            'created_at'      => optional($barang->created_at)->translatedFormat('d F Y H:i'),
+            'updated_at'      => optional($barang->updated_at)->translatedFormat('d F Y H:i'),
+        ];
+
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetailModal(): void
+    {
+        $this->showDetailModal = false;
+        $this->detailBarang = [];
     }
 
     public function update(): void
