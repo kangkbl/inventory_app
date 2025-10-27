@@ -173,11 +173,12 @@
             </div>
 
             {{-- Progress ringkas (opsional) --}}
-            <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200/70 dark:bg-white/10">
-                <div class="h-full bg-emerald-500" data-snapshot-bar="baik" style="width: {{ $pct($baik) }}%"></div>
-                <div class="h-full -mt-2 bg-amber-500" data-snapshot-bar="perbaikan" style="width: {{ $pct($perbaikan) }}%"></div>
-                <div class="h-full -mt-2 bg-rose-500" data-snapshot-bar="rusak" style="width: {{ $pct($rusak) }}%"></div>
-            </div>
+            <div class="mt-3 h-2 w-full flex overflow-hidden rounded-full bg-gray-200/70 dark:bg-white/10">
+    <div class="h-full bg-emerald-500" data-snapshot-bar="baik" style="width: {{ $pct($baik) }}%"></div>
+    <div class="h-full bg-amber-500" data-snapshot-bar="perbaikan" style="width: {{ $pct($perbaikan) }}%"></div>
+    <div class="h-full bg-rose-500" data-snapshot-bar="rusak" style="width: {{ $pct($rusak) }}%"></div>
+</div>
+
 
             <div
                 class="promo-box mt-2 text-[11px] text-gray-500 dark:text-gray-400 {{ $lainnya > 0 ? '' : 'hidden' }}"
