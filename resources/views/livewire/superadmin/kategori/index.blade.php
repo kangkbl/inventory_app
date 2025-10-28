@@ -48,8 +48,8 @@
                     </div>
                     </div>
             </div>
-            <div class="max-h-[600px] overflow-x-auto">
-                <table class="w-full min-w-[600px] table-auto">
+            <div>
+                <table class="w-full table-auto">
                     <thead class="divide-y divide-gray-200 dark:divide-gray-800">
                         <tr class="border-b border-gray-200 dark:border-gray-800">
                             <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">

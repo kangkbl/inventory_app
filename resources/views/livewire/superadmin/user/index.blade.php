@@ -95,8 +95,8 @@
                     </div>
                 </div>
             </div>
-            <div class="custom-scrollbar max-h-[600px] overflow-x-auto">
-                <table class="w-full min-w-[700px] table-auto">
+            <div class="custom-scrollbar">
+                <table class="w-full table-auto">
                     <thead class="font-black divide-x divide-y divide-gray-200 dark:divide-gray-800">
                         <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800 ">
                             
