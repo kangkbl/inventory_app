@@ -3,7 +3,7 @@
         showHistory: false,
         closeModal() {
             this.openDetailModal = false;
-            this.showHistory: false,
+            this.showHistory = false;
             this.$nextTick(() => $wire.closeDetailModal());
         },
         toggleHistory() {
@@ -112,7 +112,7 @@
                             </dl>
                         </div>
                         <div>
-                            <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center justify-between">
                                 <h4 class="text-sm font-semibold text-white">Riwayat Pembaruan</h4>
                                 <button type="button"
                                     class="text-xs font-medium text-indigo-300 transition hover:text-indigo-200"
