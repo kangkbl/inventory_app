@@ -112,7 +112,47 @@
                                 </dd>
                             </dl>
                         </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-white">Riwayat Pembaruan</h4>
+                            <div class="mt-3 max-h-60 space-y-3 overflow-y-auto pr-1">
+                                @forelse ($historyRecords as $history)
+                                    <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+                                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
+                                            <span class="font-medium text-white">{{ $history['action'] }}</span>
+                                            <span>{{ $history['timestamp'] ?? '-' }}</span>
+                                        </div>
+                                        @if (!empty($history['user']))
+                                            <p class="mt-1 text-xs text-gray-400">Oleh:
+                                                <span class="text-white">{{ $history['user'] }}</span>
+                                            </p>
+                                        @endif
+
+                                        @if (!empty($history['changes']))
+                                            <dl class="mt-3 space-y-2 text-xs">
+                                                @foreach ($history['changes'] as $change)
+                                                    <div>
+                                                        <dt class="font-medium text-white">{{ $change['label'] }}</dt>
+                                                        <dd class="mt-0.5 text-gray-400">
+                                                            <span class="text-gray-500">Dari:</span>
+                                                            <span class="text-white">{{ $change['old'] }}</span>
+                                                            <span class="px-1 text-gray-500">→</span>
+                                                            <span class="text-gray-500">Ke:</span>
+                                                            <span class="text-white">{{ $change['new'] }}</span>
+                                                        </dd>
+                                                    </div>
+                                                @endforeach
+                                            </dl>
+                                        @else
+                                            <p class="mt-3 text-xs text-gray-400">Tidak ada detail perubahan.</p>
+                                        @endif
+                                    </div>
+                                @empty
+                                    <p class="text-xs text-gray-400">Belum ada riwayat pembaruan.</p>
+                                @endforelse
+                            </div>
+                        </div>
                     </div>
+                    
 
                     <div class="mt-6 flex justify-end">
                         <button type="button"

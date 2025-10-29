@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
+
 class Index extends Component
 {
     use WithPagination;
@@ -33,6 +34,7 @@ class Index extends Component
     public bool $showDetailModal = false;
     public ?int $editingId = null;
     public array $detailBarang = [];
+    public array $historyRecords = [];
 
 
     public array $kondisiOptions = [
@@ -44,6 +46,19 @@ class Index extends Component
     public string $iconPath = 'M5 2a1 1 0 0 0-1 1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1a1 1 0 0 0 1 1h1v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a1 1 0 1 0 0-2h-1v-1h1a1 1 0 1 0 0-2h-1V6h1a1 1 0 0 0 0-2h-1V3a1 1 0 0 0-1-1H5Zm2 3h6a1 1 0 0 1 1 1v6h-1v1H7v-1H6V6a1 1 0 0 1 1-1Zm1 2v2h2V7H8Zm0 3v2h2v-2H8Zm3-3v2h2V7h-2Zm0 3v2h2v-2h-2Z';
     
     public ?string $selectedCategory = null;
+
+    
+    protected array $fieldLabels = [
+        'nama_barang'     => 'Nama Barang',
+        'merk'            => 'Merk',
+        'kode_barang_bmn' => 'Kode Barang BMN',
+        'kategori'        => 'Kategori',
+        'lokasi'          => 'Lokasi',
+        'kondisi'         => 'Kondisi',
+        'jumlah'          => 'Jumlah',
+        'tahun_pengadaan' => 'Tahun Pengadaan',
+        'keterangan'      => 'Keterangan',
+    ];
     
     public function render()
     {
@@ -231,7 +246,7 @@ public function updatedPaginate(): void
 
         $keterangan = $validated['keterangan'];
 
-        Barang::create([
+        $barang = Barang::create([
             'nama_barang'      => trim($validated['namaBarang']),
             'merk'             => trim($validated['merk']),
             'kode_barang_bmn'  => strtoupper(trim($validated['kodeBarangBmn'])),
@@ -243,6 +258,8 @@ public function updatedPaginate(): void
             'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
             'updated_by'       => Auth::id(),
         ]);
+
+        $this->recordHistory($barang, 'created', $this->compileCreationChanges($barang));
 
         $this->cancelCreate();
 
@@ -271,6 +288,10 @@ public function updatedPaginate(): void
             'updated_by'      => optional($barang->updatedBy)->name,
         ];
 
+        $this->historyRecords = $this->formatHistoryRecords(
+            $barang->histories()->with('updatedBy')->latest()->get()
+        );
+
         $this->showDetailModal = true;
     }
 
@@ -278,6 +299,7 @@ public function updatedPaginate(): void
     {
         $this->showDetailModal = false;
         $this->detailBarang = [];
+        $this->historyRecords = [];
     }
 
     public function update(): void
@@ -291,7 +313,9 @@ public function updatedPaginate(): void
         $barang = Barang::findOrFail($this->editingId);
         $keterangan = $validated['keterangan'];
 
-        $barang->update([
+        $original = $barang->getOriginal();
+
+        $barang->fill([
             'nama_barang'      => trim($validated['namaBarang']),
             'merk'             => trim($validated['merk']),
             'kode_barang_bmn'  => strtoupper(trim($validated['kodeBarangBmn'])),
@@ -303,6 +327,16 @@ public function updatedPaginate(): void
             'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
             'updated_by'       => Auth::id(),
         ]);
+
+        $dirty = $barang->getDirty();
+
+        $barang->save();
+
+        $changes = $this->compileDirtyChanges($dirty, $original);
+
+        if (! empty($changes)) {
+            $this->recordHistory($barang, 'updated', $changes);
+        }
 
         $this->cancelEdit();
 
@@ -361,5 +395,105 @@ public function updatedPaginate(): void
     protected function dispatchSnapshotRefresh(): void
     {
         $this->dispatch('barang-snapshot-refresh')->to('partials.snapshot-kondisi');
+    }
+
+    protected function trackedFields(): array
+    {
+        return array_keys($this->fieldLabels);
+    }
+
+    protected function compileCreationChanges(Barang $barang): array
+    {
+        $changes = [];
+
+        foreach ($this->trackedFields() as $field) {
+            $changes[$field] = [
+                'old' => null,
+                'new' => $barang->{$field},
+            ];
+        }
+
+        return $changes;
+    }
+
+    protected function compileDirtyChanges(array $dirty, array $original): array
+    {
+        $changes = [];
+
+        foreach ($dirty as $field => $newValue) {
+            if (! in_array($field, $this->trackedFields(), true)) {
+                continue;
+            }
+
+            $changes[$field] = [
+                'old' => $original[$field] ?? null,
+                'new' => $newValue,
+            ];
+        }
+
+        return $changes;
+    }
+
+    protected function recordHistory(Barang $barang, string $action, array $changes): void
+    {
+        if (empty($changes)) {
+            return;
+        }
+
+        $barang->histories()->create([
+            'updated_by' => Auth::id(),
+            'action'     => $action,
+            'changes'    => $changes,
+        ]);
+    }
+
+    protected function formatHistoryRecords($histories): array
+    {
+        return $histories->map(function ($history) {
+            return [
+                'id'        => $history->id,
+                'action'    => $this->formatHistoryAction($history->action),
+                'timestamp' => optional($history->created_at)->translatedFormat('d F Y H:i'),
+                'user'      => optional($history->updatedBy)->name,
+                'changes'   => $this->formatHistoryChanges($history->changes ?? []),
+            ];
+        })->toArray();
+    }
+
+    protected function formatHistoryAction(string $action): string
+    {
+        return match ($action) {
+            'created' => 'Ditambahkan',
+            'updated' => 'Diperbarui',
+            default   => ucfirst($action),
+        };
+    }
+
+    protected function formatHistoryChanges(array $changes): array
+    {
+        $formatted = [];
+
+        foreach ($changes as $field => $value) {
+            if (! array_key_exists($field, $this->fieldLabels)) {
+                continue;
+            }
+
+            $formatted[] = [
+                'label' => $this->fieldLabels[$field],
+                'old'   => $this->formatHistoryValue($value['old'] ?? null),
+                'new'   => $this->formatHistoryValue($value['new'] ?? null),
+            ];
+        }
+
+        return $formatted;
+    }
+
+    protected function formatHistoryValue($value): string
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        return (string) $value;
     }
 }
