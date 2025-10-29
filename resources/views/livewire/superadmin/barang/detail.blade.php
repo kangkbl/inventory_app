@@ -105,6 +105,12 @@
                                     {{ data_get($detailBarang, 'updated_at', '-') }}
                                 </dd>
                             </dl>
+                            <dl>
+                                <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Diperbarui Oleh</dt>
+                                <dd class="mt-1 text-sm text-white">
+                                    {{ data_get($detailBarang, 'updated_by', '-') }}
+                                </dd>
+                            </dl>
                         </div>
                     </div>
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Notifications\Notifiable;
 class Barang extends Model
 {
@@ -24,6 +25,11 @@ class Barang extends Model
         'kondisi',
         'jumlah',
         'tahun_pengadaan',
-        'keterangan',
+        'keterangan','updated_by',
     ];
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 }

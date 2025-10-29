@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Barang;
 
 use App\Models\Barang;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -240,6 +241,7 @@ public function updatedPaginate(): void
             'jumlah'           => (int) $validated['jumlah'],
             'tahun_pengadaan'  => (int) $validated['tahunPengadaan'],
             'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
+            'updated_by'       => Auth::id(),
         ]);
 
         $this->cancelCreate();
@@ -252,7 +254,7 @@ public function updatedPaginate(): void
     
     public function openDetailModal(int $barangId): void
     {
-        $barang = Barang::findOrFail($barangId);
+        $barang = Barang::with('updatedBy')->findOrFail($barangId);
 
         $this->detailBarang = [
             'nama_barang'     => $barang->nama_barang,
@@ -266,6 +268,7 @@ public function updatedPaginate(): void
             'keterangan'      => $barang->keterangan ?? '-',
             'created_at'      => optional($barang->created_at)->translatedFormat('d F Y H:i'),
             'updated_at'      => optional($barang->updated_at)->translatedFormat('d F Y H:i'),
+            'updated_by'      => optional($barang->updatedBy)->name,
         ];
 
         $this->showDetailModal = true;
@@ -298,6 +301,7 @@ public function updatedPaginate(): void
             'jumlah'           => (int) $validated['jumlah'],
             'tahun_pengadaan'  => (int) $validated['tahunPengadaan'],
             'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
+            'updated_by'       => Auth::id(),
         ]);
 
         $this->cancelEdit();
