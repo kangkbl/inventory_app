@@ -105,12 +105,6 @@
                                     {{ data_get($detailBarang, 'updated_at', '-') }}
                                 </dd>
                             </dl>
-                            <dl class="sm:col-span-2">
-                                <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Diperbarui Oleh</dt>
-                                <dd class="mt-1 text-sm text-white">
-                                    {{ data_get($detailBarang, 'updated_by', '-') ?? '-' }}
-                                </dd>
-                            </dl>
                         </div>
                         <div>
                             <h4 class="text-sm font-semibold text-white">Riwayat Pembaruan</h4>

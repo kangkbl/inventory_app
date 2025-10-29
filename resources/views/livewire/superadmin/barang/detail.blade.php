@@ -1,8 +1,13 @@
 <div x-data="{
         openDetailModal: @entangle('showDetailModal').live,
+        showHistory: false,
         closeModal() {
             this.openDetailModal = false;
+            this.showHistory: false,
             this.$nextTick(() => $wire.closeDetailModal());
+        },
+        toggleHistory() {
+            this.showHistory = !this.showHistory;
         }
     }" x-cloak x-on:keydown.escape.window="closeModal()">
     <div x-show="openDetailModal" x-transition.opacity.duration.200ms
@@ -105,16 +110,19 @@
                                     {{ data_get($detailBarang, 'updated_at', '-') }}
                                 </dd>
                             </dl>
-                            <dl>
-                                <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Diperbarui Oleh</dt>
-                                <dd class="mt-1 text-sm text-white">
-                                    {{ data_get($detailBarang, 'updated_by', '-') }}
-                                </dd>
-                            </dl>
                         </div>
                         <div>
-                            <h4 class="text-sm font-semibold text-white">Riwayat Pembaruan</h4>
-                            <div class="mt-3 max-h-60 space-y-3 overflow-y-auto pr-1">
+                            <div class="flex items-center justify-between gap-3">
+                                <h4 class="text-sm font-semibold text-white">Riwayat Pembaruan</h4>
+                                <button type="button"
+                                    class="text-xs font-medium text-indigo-300 transition hover:text-indigo-200"
+                                    x-on:click="toggleHistory()">
+                                    <span x-show="!showHistory" x-cloak>Lihat selengkapnya</span>
+                                    <span x-show="showHistory" x-cloak>Sembunyikan</span>
+                                </button>
+                            </div>
+                            <div class="mt-3 max-h-60 space-y-3 overflow-y-auto pr-1" x-show="showHistory"
+                                x-transition.opacity.duration.200ms x-cloak>
                                 @forelse ($historyRecords as $history)
                                     <div class="rounded-lg border border-white/10 bg-white/5 p-3">
                                         <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
@@ -150,6 +158,9 @@
                                     <p class="text-xs text-gray-400">Belum ada riwayat pembaruan.</p>
                                 @endforelse
                             </div>
+                            <p class="mt-2 text-xs text-gray-500" x-show="!showHistory" x-cloak>
+                                Klik "Lihat selengkapnya" untuk menampilkan riwayat pembaruan.
+                            </p>
                         </div>
                     </div>
 
