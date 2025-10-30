@@ -3,12 +3,15 @@
 namespace App\Livewire\Admin\Barang;
 
 use App\Models\Barang;
+use App\Exports\BarangExport;
+use App\Services\BarangPdfExporter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Index extends Component
 {
@@ -136,6 +139,61 @@ public function updatedPaginate(): void
         }
 
         return $query;
+    }
+
+    public function export(string $format)
+    {
+        $format = strtolower(trim($format));
+
+        $items = $this->baseQuery()
+            ->orderBy('nama_barang')
+            ->get($this->exportColumns());
+
+        if ($items->isEmpty()) {
+            $this->dispatch('notify', body: 'Tidak ada data barang untuk diekspor.');
+
+            return null;
+        }
+
+        $fileName = 'data-barang_' . now()->format('Ymd_His');
+
+        if ($format === 'excel') {
+            return Excel::download(new BarangExport($items), $fileName . '.xlsx');
+        }
+
+        if ($format === 'pdf') {
+            $exporter = new BarangPdfExporter();
+            $pdfContent = $exporter->build($items);
+
+            return response()->streamDownload(
+                static function () use ($pdfContent): void {
+                    echo $pdfContent;
+                },
+                $fileName . '.pdf',
+                ['Content-Type' => 'application/pdf']
+            );
+        }
+
+        $this->dispatch('notify', body: 'Format export tidak dikenali.');
+
+        return null;
+    }
+
+    protected function exportColumns(): array
+    {
+        return [
+            'nama_barang',
+            'merk',
+            'kode_barang_bmn',
+            'kategori',
+            'lokasi',
+            'kondisi',
+            'jumlah',
+            'tahun_pengadaan',
+            'keterangan',
+            'created_at',
+            'updated_at',
+        ];
     }
 
     protected function rules(): array

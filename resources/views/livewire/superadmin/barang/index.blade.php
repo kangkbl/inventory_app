@@ -21,17 +21,44 @@
                     </p>
                 </div>
                 <div class="flex gap-3">
-                    <button
-                        class="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-medium text-gray-700 ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">
-                        Export
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"
-                            fill="none">
-                            <path
-                                d="M16.667 13.3333V15.4166C16.667 16.1069 16.1074 16.6666 15.417 16.6666H4.58295C3.89259 16.6666 3.33295 16.1069 3.33295 15.4166V13.3333M10.0013 13.3333L10.0013 3.33325M6.14547 9.47942L9.99951 13.331L13.8538 9.47942"
-                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            </path>
-                        </svg>
-                    </button>
+                    <div class="relative" x-data="{ openExport: false }">
+                        <button type="button"
+                            class="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-medium text-gray-700 ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]"
+                            @click="openExport = !openExport">
+                            Export
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"
+                                fill="none">
+                                <path
+                                    d="M16.667 13.3333V15.4166C16.667 16.1069 16.1074 16.6666 15.417 16.6666H4.58295C3.89259 16.6666 3.33295 16.1069 3.33295 15.4166V13.3333M10.0013 13.3333L10.0013 3.33325M6.14547 9.47942L9.99951 13.331L13.8538 9.47942"
+                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                </path>
+                            </svg>
+                        </button>
+                        <div x-cloak x-show="openExport" @click.away="openExport = false"
+                            x-transition.origin.top.right
+                            class="absolute right-0 z-20 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                            <button type="button" @click="openExport = false"
+                                wire:click="export('excel')"
+                                class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+                                <span>Export Excel</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="h-4 w-4"
+                                    fill="currentColor">
+                                    <path
+                                        d="M5.5 4a1 1 0 0 0-.894.553L2 10l2.606 5.447A1 1 0 0 0 5.5 16h9a1 1 0 0 0 .894-.553L18 10l-2.606-5.447A1 1 0 0 0 14.5 4h-9Zm1.207 3.793a1 1 0 0 1 1.414 0L10 9.672l1.879-1.879a1 1 0 1 1 1.414 1.414L11.414 11l1.879 1.879a1 1 0 1 1-1.414 1.414L10 12.414l-1.879 1.879a1 1 0 1 1-1.414-1.414L8.586 11 6.707 9.121a1 1 0 0 1 0-1.414Z" />
+                                </svg>
+                            </button>
+                            <button type="button" @click="openExport = false"
+                                wire:click="export('pdf')"
+                                class="mt-1 flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+                                <span>Export PDF</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="h-4 w-4"
+                                    fill="currentColor">
+                                    <path
+                                        d="M5 2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.414A2 2 0 0 0 16.414 6L13 2.586A2 2 0 0 0 11.586 2H5Zm5 3a1 1 0 0 1 1 1v1h2a1 1 0 1 1 0 2h-2v6a1 1 0 1 1-2 0V9H7a1 1 0 0 1 0-2h2V6a1 1 0 0 1 1-1Z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                     <button type="button"
                         wire:click="openCreateModal"                        
                         class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition">
