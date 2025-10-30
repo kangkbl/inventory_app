@@ -4,17 +4,23 @@ namespace App\Livewire\Superadmin\Barang;
 
 use App\Models\Barang;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class Index extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     protected $paginateTheme = 'tailwind';
+    protected const MAX_COMPRESSED_BYTES = 2097152; // 2MB
 
     public $paginate = '10';
     public $search = '';
@@ -28,6 +34,10 @@ class Index extends Component
     public string $jumlah = '';
     public string $tahunPengadaan = '';
     public string $keterangan = '';
+
+    public $photo;
+    public ?string $photoPreviewUrl = null;
+
 
     public bool $showCreateModal = false;
     public bool $showEditModal = false;
@@ -57,6 +67,7 @@ class Index extends Component
         'jumlah'          => 'Jumlah',
         'tahun_pengadaan' => 'Tahun Pengadaan',
         'keterangan'      => 'Keterangan',
+        'photo_path'      => 'Foto Barang',
     ];
     
     public function render()
@@ -157,6 +168,7 @@ public function updatedPaginate(): void
             'jumlah'          => ['required', 'integer', 'min:1'],
             'tahunPengadaan'  => ['required', 'integer', 'between:1900,' . $currentYear],
             'keterangan'      => ['nullable', 'string', 'max:500'],
+            'photo'           => ['nullable', 'image'],
         ];
     }
 
@@ -180,12 +192,19 @@ public function updatedPaginate(): void
             'tahunPengadaan.integer'  => 'Tahun pengadaan harus berupa angka.',
             'tahunPengadaan.between'  => 'Tahun pengadaan harus antara 1900 hingga tahun sekarang.',
             'keterangan.max'          => 'Keterangan maksimal 500 karakter.',
+            'photo.image'             => 'Foto barang harus berupa file gambar.',
         ];
     }
 
     public function updated($property): void
     {
         $this->validateOnly($property);
+    }
+
+    public function updatedPhoto(): void
+    {
+        $this->validateOnly('photo');
+        $this->photoPreviewUrl = $this->photo ? $this->photo->temporaryUrl() : null;
     }
 
     public function getCanSaveProperty(): bool
@@ -227,6 +246,7 @@ public function updatedPaginate(): void
         $this->jumlah = (string) $barang->jumlah;
         $this->tahunPengadaan = (string) $barang->tahun_pengadaan;
         $this->keterangan = $barang->keterangan ?? '';
+        $this->photoPreviewUrl = $barang->photo_url ?? $this->generateFallbackImage($barang->nama_barang, $barang->merk);
 
         $this->resetValidation();
         $this->showEditModal = true;
@@ -244,6 +264,7 @@ public function updatedPaginate(): void
         $validated = $this->validate();
 
         $keterangan = $validated['keterangan'];
+        $photoPath = $this->resolvePhotoPath(null, trim($validated['namaBarang']), trim($validated['merk']));
 
         $barang = Barang::create([
             'nama_barang'      => trim($validated['namaBarang']),
@@ -255,6 +276,7 @@ public function updatedPaginate(): void
             'jumlah'           => (int) $validated['jumlah'],
             'tahun_pengadaan'  => (int) $validated['tahunPengadaan'],
             'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
+            'photo_path'       => $photoPath,
             'updated_by'       => Auth::id(),
         ]);
 
@@ -284,6 +306,7 @@ public function updatedPaginate(): void
             'created_at'      => optional($barang->created_at)->translatedFormat('d F Y H:i'),
             'updated_at'      => optional($barang->updated_at)->translatedFormat('d F Y H:i'),
             'updated_by'      => optional($barang->updatedBy)->name,
+            'photo_url'       => $barang->photo_url ?? $this->generateFallbackImage($barang->nama_barang, $barang->merk),
         ];
         
         $this->historyRecords = $this->formatHistoryRecords(
@@ -310,6 +333,7 @@ public function updatedPaginate(): void
 
         $barang = Barang::findOrFail($this->editingId);
         $keterangan = $validated['keterangan'];
+        $photoPath = $this->resolvePhotoPath($barang, trim($validated['namaBarang']), trim($validated['merk']));
 
         $original = $barang->getOriginal();
 
@@ -323,6 +347,7 @@ public function updatedPaginate(): void
             'jumlah'           => (int) $validated['jumlah'],
             'tahun_pengadaan'  => (int) $validated['tahunPengadaan'],
             'keterangan'       => $keterangan !== null && trim($keterangan) !== '' ? trim($keterangan) : null,
+            'photo_path'       => $photoPath,
             'updated_by'       => Auth::id(),
         ]);
         
@@ -385,6 +410,8 @@ public function updatedPaginate(): void
             'jumlah',
             'tahunPengadaan',
             'keterangan',
+            'photo',
+            'photoPreviewUrl',
         ]);
 
         $this->resetValidation();
@@ -493,5 +520,135 @@ public function updatedPaginate(): void
         }
 
         return (string) $value;
+    }
+    protected function resolvePhotoPath(?Barang $existing, string $namaBarang, string $merk): ?string
+    {
+        if ($this->photo instanceof TemporaryUploadedFile) {
+            $storedPath = $this->storeCompressedPhoto($this->photo);
+
+            if ($existing && $existing->photo_path && $this->isStoredLocally($existing->photo_path)) {
+                Storage::disk('public')->delete($existing->photo_path);
+            }
+
+            return $storedPath;
+        }
+
+        if ($existing && $existing->photo_path) {
+            return $existing->photo_path;
+        }
+
+        return $this->generateFallbackImage($namaBarang, $merk);
+    }
+
+    protected function storeCompressedPhoto(TemporaryUploadedFile $photo): string
+    {
+        $raw = @file_get_contents($photo->getRealPath());
+
+        if ($raw === false) {
+            return $photo->store('barang-photos', 'public');
+        }
+
+        $resource = @imagecreatefromstring($raw);
+
+        if (! $resource instanceof \GdImage) {
+            return $photo->store('barang-photos', 'public');
+        }
+
+        $resource = $this->forceTrueColor($resource);
+
+        [$encoded, $finalResource] = $this->encodeWithinLimit($resource, self::MAX_COMPRESSED_BYTES);
+
+        $filename = 'barang-photos/' . Str::uuid() . '.jpg';
+        Storage::disk('public')->put($filename, $encoded);
+
+        imagedestroy($finalResource);
+
+        return $filename;
+    }
+
+    protected function forceTrueColor(\GdImage $image): \GdImage
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        $trueColor = imagecreatetruecolor($width, $height);
+        $background = imagecolorallocate($trueColor, 255, 255, 255);
+        imagefill($trueColor, 0, 0, $background);
+        imagecopyresampled($trueColor, $image, 0, 0, 0, 0, $width, $height, $width, $height);
+
+        imagedestroy($image);
+
+        return $trueColor;
+    }
+
+    protected function encodeWithinLimit(\GdImage $image, int $maxBytes): array
+    {
+        $quality = 85;
+        $minimumQuality = 45;
+        $data = $this->encodeJpeg($image, $quality);
+
+        while (strlen($data) > $maxBytes) {
+            if ($quality > $minimumQuality) {
+                $quality = max($minimumQuality, $quality - 5);
+            } else {
+                $image = $this->resizeImage($image, 0.9);
+                $quality = 80;
+            }
+
+            $data = $this->encodeJpeg($image, $quality);
+
+            if ($quality <= $minimumQuality && imagesx($image) <= 320 && imagesy($image) <= 320) {
+                break;
+            }
+        }
+
+        return [$data, $image];
+    }
+
+    protected function encodeJpeg(\GdImage $image, int $quality): string
+    {
+        ob_start();
+        imagejpeg($image, null, $quality);
+
+        return (string) ob_get_clean();
+    }
+
+    protected function resizeImage(\GdImage $image, float $ratio): \GdImage
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        $newWidth = max(1, (int) round($width * $ratio));
+        $newHeight = max(1, (int) round($height * $ratio));
+
+        $resized = imagecreatetruecolor($newWidth, $newHeight);
+        $background = imagecolorallocate($resized, 255, 255, 255);
+        imagefill($resized, 0, 0, $background);
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+        imagedestroy($image);
+
+        return $resized;
+    }
+
+    protected function generateFallbackImage(?string $namaBarang, ?string $merk): string
+    {
+        $parts = array_filter([
+            $namaBarang ? trim($namaBarang) : null,
+            $merk ? trim($merk) : null,
+        ]);
+
+        if (empty($parts)) {
+            return 'https://source.unsplash.com/featured/?inventory';
+        }
+
+        $query = rawurlencode(implode(' ', $parts));
+
+        return "https://source.unsplash.com/featured/?{$query}";
+    }
+
+    protected function isStoredLocally(string $path): bool
+    {
+        return ! Str::startsWith($path, ['http://', 'https://']);
     }
 }

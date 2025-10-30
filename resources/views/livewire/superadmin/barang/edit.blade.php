@@ -147,6 +147,22 @@
                         </div>
 
                         <div>
+                            <label for="superadmin-edit-photo" class="block text-sm text-gray-300">Foto Barang (Opsional)</label>
+                            <input id="superadmin-edit-photo" type="file" wire:model="photo" accept="image/*"
+                                class="mt-1 w-full rounded-lg border {{ $errors->has('photo') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400">
+                            @error('photo')
+                                <p wire:key="superadmin-edit-error-photo" class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1 text-xs text-gray-400">Apabila tidak diunggah, sistem akan mencoba mencari gambar otomatis berdasarkan nama barang dan merk.</p>
+
+                            @if ($photoPreviewUrl)
+                                <div class="mt-3 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
+                                    <img src="{{ $photoPreviewUrl }}" alt="Preview Foto Barang" class="h-48 w-full object-cover">
+                                </div>
+                            @endif
+                        </div>
+
+                        <div>
                             <label for="edit-keterangan" class="block text-sm text-gray-300">Keterangan (Opsional)</label>
                             <textarea id="edit-keterangan" rows="3" wire:model.live.debounce.400ms="keterangan"
                                 class="mt-1 w-full rounded-lg border {{ $errors->has('keterangan') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400"

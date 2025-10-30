@@ -39,6 +39,12 @@
                     </div>
 
                     <div class="space-y-4">
+                        @if ($photoUrl = data_get($detailBarang, 'photo_url'))
+                            <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                                <img src="{{ $photoUrl }}" alt="Foto {{ data_get($detailBarang, 'nama_barang', 'Barang') }}"
+                                    class="h-48 w-full object-cover">
+                            </div>
+                        @endif
                         <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                             <div>
                                 <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Nama Barang</dt>
