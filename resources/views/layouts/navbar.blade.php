@@ -1,4 +1,4 @@
-<header class="sticky top-0 z-[99999] w-full border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+<header class="sticky top-0 z-[9999] w-full border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
     <div class="flex items-center justify-between px-3 py-3 lg:px-6 lg:py-4">
         <!-- Kiri: Burger + Logo mobile -->
         <div class="flex items-center gap-2 sm:gap-3">

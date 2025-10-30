@@ -8,7 +8,7 @@
     <div
         x-show="openEditModal"
         x-transition.opacity.duration.200ms
-        class="fixed inset-0 z-50 transition-opacity duration-200 ease-out"
+        class="fixed inset-0 z-[10000] transition-opacity duration-200 ease-out"
         aria-labelledby="dialog-title"
         role="dialog"
         aria-modal="true"

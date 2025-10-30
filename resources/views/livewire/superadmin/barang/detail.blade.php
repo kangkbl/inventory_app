@@ -11,7 +11,7 @@
         }
     }" x-cloak x-on:keydown.escape.window="closeModal()">
     <div x-show="openDetailModal" x-transition.opacity.duration.200ms
-        class="fixed inset-0 z-50 transition-opacity duration-200 ease-out" aria-labelledby="detail-dialog-title"
+        class="fixed inset-0 z-[10000] transition-opacity duration-200 ease-out" aria-labelledby="detail-dialog-title"
         role="dialog" aria-modal="true">
         <div x-show="openDetailModal" x-transition.opacity.duration.200ms
             class="absolute inset-0 bg-gray-900/50 transition-opacity duration-200 ease-out" x-on:click="closeModal()"
