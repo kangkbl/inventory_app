@@ -188,13 +188,19 @@ class SimplePdf
 
         $addObject = function (int $number, string $content) use (&$pdf, &$offsets): void {
             $offsets[$number] = strlen($pdf);
-            $pdf .= sprintf("%d 0 obj\n%s\nendobj\n", $number, $content);
+            $pdf .= $number . " 0 obj\n" . $content . "\nendobj\n";
         };
 
         $addObject($fontNumber, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
 
         foreach ($this->imageRegistry as $name => $image) {
-            $length = strlen($image['data']);
+            $data = $image['data'];
+
+            if (! str_ends_with($data, "\n")) {
+                $data .= "\n";
+            }
+
+            $length = strlen($data);
             $stream = sprintf(
                 "<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace %s /BitsPerComponent %d /Filter %s /Length %d >>\nstream\n",
                 $image['width'],
@@ -204,13 +210,8 @@ class SimplePdf
                 $image['filter'],
                 $length,
             );
-            $stream .= $image['data'];
-
-            if (! str_ends_with($stream, "\n")) {
-                $stream .= "\n";
-            }
-
-            $stream .= "endstream";
+            $stream .= $data;
+            $stream .= "endstream\n";
 
             $addObject($image['objectNumber'], $stream);
         }
@@ -227,7 +228,7 @@ class SimplePdf
             }
 
             $length = strlen($content);
-            $stream = sprintf("<< /Length %d >>\nstream\n%sendstream", $length, $content);
+            $stream = sprintf("<< /Length %d >>\nstream\n%sendstream\n", $length, $content);
             $contentNumber = $contentNumbers[$index];
             $addObject($contentNumber, $stream);
 
@@ -388,8 +389,8 @@ class SimplePdf
 
         return $segments;
     }
-    
-private function registerImage(string $data, int $width, int $height, string $colorSpace, string $filter, int $bits): string
+
+    private function registerImage(string $data, int $width, int $height, string $colorSpace, string $filter, int $bits): string
     {
         $hash = md5($data . $width . $height . $colorSpace . $filter . $bits);
 

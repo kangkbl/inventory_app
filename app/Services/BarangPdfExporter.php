@@ -20,6 +20,7 @@ class BarangPdfExporter
         $pdf->addLine('', 10, 12);
 
         $disk = Storage::disk('public');
+
         foreach ($items->values() as $index => $barang) {
             $pdf->ensureBlockSpace(self::BLOCK_MIN_HEIGHT);
 

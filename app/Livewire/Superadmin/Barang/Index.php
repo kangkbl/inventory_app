@@ -51,8 +51,8 @@ class Index extends Component
 
     public array $kondisiOptions = [
         'Baik',
-        'Rusak Ringan',
-        'Rusak Berat',
+        'Perbaikan',
+        'Rusak',
     ];
 
     public string $iconPath = 'M5 2a1 1 0 0 0-1 1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1H3a1 1 0 1 0 0 2h1v1a1 1 0 0 0 1 1h1v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a1 1 0 1 0 0-2h-1v-1h1a1 1 0 1 0 0-2h-1V6h1a1 1 0 0 0 0-2h-1V3a1 1 0 0 0-1-1H5Zm2 3h6a1 1 0 0 1 1 1v6h-1v1H7v-1H6V6a1 1 0 0 1 1-1Zm1 2v2h2V7H8Zm0 3v2h2v-2H8Zm3-3v2h2V7h-2Zm0 3v2h2v-2h-2Z';
