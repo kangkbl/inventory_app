@@ -11,13 +11,25 @@ class SimplePdf
     private float $marginBottom;
 
     /**
-     * @var array<int, array{content: string}>
+     * @var array<int, array{content: string, images: array<string, true>}>
      */
     private array $pages = [];
 
     private int $currentPageIndex = -1;
 
     private float $currentY = 0.0;
+
+    /**
+     * @var array<string, array{data: string, width: int, height: int, colorSpace: string, filter: string, bitsPerComponent: int, objectNumber?: int}>
+     */
+    private array $imageRegistry = [];
+
+    /**
+     * @var array<string, string>
+     */
+    private array $imageLookup = [];
+
+    private int $imageCounter = 0;
 
     public function __construct(float $width = 595.28, float $height = 841.89, float $margin = 40.0)
     {
@@ -30,7 +42,7 @@ class SimplePdf
 
     public function addPage(): void
     {
-        $this->pages[] = ['content' => ''];
+        $this->pages[] = ['content' => '', 'images' => []];
         $this->currentPageIndex = count($this->pages) - 1;
         $this->currentY = $this->height - $this->marginTop;
     }
@@ -77,6 +89,77 @@ class SimplePdf
         $this->currentY -= $leading;
     }
 
+    public function ensureBlockSpace(float $height): void
+    {
+        $this->ensureSpace($height);
+    }
+
+    public function getCursorY(): float
+    {
+        $this->ensurePageExists();
+
+        return $this->currentY;
+    }
+
+    public function moveCursorTo(float $y): void
+    {
+        $this->ensurePageExists();
+
+        if ($y < $this->marginBottom) {
+            $this->addPage();
+
+            return;
+        }
+
+        if ($y < $this->currentY) {
+            $this->currentY = $y;
+        }
+    }
+
+    public function drawImageFromPath(string $path, float $topY, float $x, float $maxWidth, float $maxHeight): ?float
+    {
+        $this->ensurePageExists();
+
+        $info = @getimagesize($path);
+
+        if (! $info || ! isset($info[0], $info[1], $info['mime'])) {
+            return null;
+        }
+
+        [$imageWidth, $imageHeight] = $info;
+        $mime = strtolower((string) $info['mime']);
+
+        if ($mime !== 'image/jpeg' && $mime !== 'image/jpg') {
+            return null;
+        }
+
+        $data = @file_get_contents($path);
+
+        if ($data === false) {
+            return null;
+        }
+
+        $imageName = $this->registerImage($data, (int) $imageWidth, (int) $imageHeight, '/DeviceRGB', '/DCTDecode', 8);
+
+        $scale = min($maxWidth / max(1, $imageWidth), $maxHeight / max(1, $imageHeight), 1.0);
+        $drawWidth = $imageWidth * $scale;
+        $drawHeight = $imageHeight * $scale;
+        $y = $topY - $drawHeight;
+
+        $this->pages[$this->currentPageIndex]['content'] .= sprintf(
+            "q %.2f 0 0 %.2f %.2f %.2f cm /%s Do Q\n",
+            $drawWidth,
+            $drawHeight,
+            $x,
+            $y,
+            $imageName,
+        );
+
+        $this->pages[$this->currentPageIndex]['images'][$imageName] = true;
+
+        return $drawHeight;
+    }
+
     public function render(): string
     {
         $this->ensurePageExists();
@@ -91,6 +174,11 @@ class SimplePdf
         $contentNumbers = [];
         $pageNumbers = [];
 
+        foreach ($this->imageRegistry as $name => &$image) {
+            $image['objectNumber'] = $objectNumber++;
+        }
+        unset($image);
+
         foreach ($this->pages as $_) {
             $contentNumbers[] = $objectNumber++;
             $pageNumbers[] = $objectNumber++;
@@ -104,6 +192,28 @@ class SimplePdf
         };
 
         $addObject($fontNumber, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+        foreach ($this->imageRegistry as $name => $image) {
+            $length = strlen($image['data']);
+            $stream = sprintf(
+                "<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace %s /BitsPerComponent %d /Filter %s /Length %d >>\nstream\n",
+                $image['width'],
+                $image['height'],
+                $image['colorSpace'],
+                $image['bitsPerComponent'],
+                $image['filter'],
+                $length,
+            );
+            $stream .= $image['data'];
+
+            if (! str_ends_with($stream, "\n")) {
+                $stream .= "\n";
+            }
+
+            $stream .= "endstream";
+
+            $addObject($image['objectNumber'], $stream);
+        }
 
         foreach ($this->pages as $index => $page) {
             $content = $page['content'];
@@ -121,13 +231,35 @@ class SimplePdf
             $contentNumber = $contentNumbers[$index];
             $addObject($contentNumber, $stream);
 
+            $resourceParts = [sprintf('/Font << /F1 %d 0 R >>', $fontNumber)];
+
+            if ($page['images'] !== []) {
+                $imageRefs = [];
+
+                foreach (array_keys($page['images']) as $imageName) {
+                    $objectNumber = $this->imageRegistry[$imageName]['objectNumber'] ?? null;
+
+                    if ($objectNumber === null) {
+                        continue;
+                    }
+
+                    $imageRefs[] = sprintf('/%s %d 0 R', $imageName, $objectNumber);
+                }
+
+                if ($imageRefs !== []) {
+                    $resourceParts[] = sprintf('/XObject << %s >>', implode(' ', $imageRefs));
+                }
+            }
+
+            $resources = implode(' ', $resourceParts);
+
             $pageObject = sprintf(
-                '<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %.2f %.2f] /Contents %d 0 R /Resources << /Font << /F1 %d 0 R >> >> >>',
+                '<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %.2f %.2f] /Contents %d 0 R /Resources << %s >> >>',
                 $pagesNumber,
                 $this->width,
                 $this->height,
                 $contentNumber,
-                $fontNumber,
+                $resources,
             );
 
             $addObject($pageNumbers[$index], $pageObject);
@@ -255,5 +387,27 @@ class SimplePdf
         }
 
         return $segments;
+    }
+    
+private function registerImage(string $data, int $width, int $height, string $colorSpace, string $filter, int $bits): string
+    {
+        $hash = md5($data . $width . $height . $colorSpace . $filter . $bits);
+
+        if (isset($this->imageLookup[$hash])) {
+            return $this->imageLookup[$hash];
+        }
+
+        $name = 'Im' . (++$this->imageCounter);
+        $this->imageLookup[$hash] = $name;
+        $this->imageRegistry[$name] = [
+            'data' => $data,
+            'width' => $width,
+            'height' => $height,
+            'colorSpace' => $colorSpace,
+            'filter' => $filter,
+            'bitsPerComponent' => $bits,
+        ];
+
+        return $name;
     }
 }

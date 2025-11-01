@@ -201,6 +201,7 @@ public function updatedPaginate(): void
             'jumlah',
             'tahun_pengadaan',
             'keterangan',
+            'photo_path',
             'created_at',
             'updated_at',
         ];
