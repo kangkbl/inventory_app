@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Barang;
 
+use App\Livewire\Concerns\HandlesBarangImport;
 use App\Models\Barang;
 use App\Exports\BarangExport;
 use App\Services\BarangPdfExporter;
@@ -10,12 +11,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 class Index extends Component
 {
     use WithPagination;
+    use WithFileUploads;
+    use HandlesBarangImport;
 
     protected $paginateTheme = 'tailwind';
 

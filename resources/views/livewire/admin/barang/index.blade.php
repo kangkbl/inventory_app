@@ -59,6 +59,14 @@
                         </div>
                     </div>
                     <button type="button"
+                        wire:click="openImportModal"
+                        class="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor">
+                            <path d="M4 3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H4Zm6 2a1 1 0 0 1 1 1v3h2.5a.5.5 0 0 1 .354.854l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5A.5.5 0 0 1 6.5 9H9V6a1 1 0 0 1 1-1Zm-4 9a1 1 0 1 1 0-2h8a1 1 0 1 1 0 2H6Z" />
+                        </svg>
+                        Import CSV
+                    </button>
+                    <button type="button"
                         wire:click="openCreateModal"
                         class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition">
                         <!-- icon -->
@@ -393,6 +401,7 @@
             </div>
 
         </div>
+        @include('livewire.barang.import-modal', ['importModalKey' => 'admin-barang'])
         @include('livewire.admin.barang.create')
         @include('livewire.admin.barang.edit')
         @include('livewire.admin.barang.detail')

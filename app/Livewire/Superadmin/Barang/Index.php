@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Superadmin\Barang;
 
+use App\Livewire\Concerns\HandlesBarangImport;
 use App\Models\Barang;
 use App\Exports\BarangExport;
 use App\Services\BarangPdfExporter;
@@ -21,6 +22,7 @@ class Index extends Component
 {
     use WithPagination;
     use WithFileUploads;
+    use HandlesBarangImport;
 
     protected $paginateTheme = 'tailwind';
     protected const MAX_COMPRESSED_BYTES = 2097152; // 2MB
