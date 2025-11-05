@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use function public_path;
+use function resource_path;
 
 class BarangPdfExporter
 {
@@ -111,6 +112,7 @@ class BarangPdfExporter
     public function build(Collection $items): string
     {
         $pdf = new SimplePdf(width: self::PAGE_WIDTH, height: self::PAGE_HEIGHT, margin: self::PAGE_MARGIN);
+        $this->configureFonts($pdf);
         $printedAt = now();
         $lastUpdated = $this->resolveLastUpdated($items);
 
@@ -271,7 +273,8 @@ class BarangPdfExporter
             }
 
             $titleX = $this->resolveCenteredX($pdf, $trimmed, self::HEADER_FONT_SIZE);
-            $pdf->addLine($trimmed, self::HEADER_FONT_SIZE, self::HEADER_LEADING, $titleX);
+            $fontKey = $pdf->getBoldFontKey() ?? $pdf->getCurrentFontKey();
+            $pdf->addLine($trimmed, self::HEADER_FONT_SIZE, self::HEADER_LEADING, $titleX, $fontKey);
         }
 
         if ($logoBottom !== null) {
@@ -325,6 +328,31 @@ class BarangPdfExporter
         return $path;
     }
 
+    private function configureFonts(SimplePdf $pdf): void
+    {
+        if (! function_exists('resource_path')) {
+            return;
+        }
+
+        $regularPath = resource_path('fonts/Calibri-Regular.ttf');
+        $boldPath = resource_path('fonts/Calibri-Bold.ttf');
+
+        $hasRegular = is_file($regularPath);
+        $hasBold = is_file($boldPath);
+
+        if ($hasRegular) {
+            $pdf->registerTrueTypeFont('F1', $regularPath, 'Calibri');
+            $pdf->setCurrentFont('F1');
+        }
+
+        if ($hasBold) {
+            $pdf->registerTrueTypeFont('F2', $boldPath, 'Calibri-Bold', true);
+            $pdf->setBoldFontKey('F2');
+        } elseif ($hasRegular) {
+            $pdf->setBoldFontKey('F1');
+        }
+    }
+    
     /**
      * @param array<int, array<string, mixed>> $columns
      * @param array<int, float> $columnBoundaries
