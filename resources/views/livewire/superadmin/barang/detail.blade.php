@@ -47,7 +47,7 @@
                                 x-data="{ failed: {{ $photoUrl ? 'false' : 'true' }} }">
                                 @if ($photoUrl)
                                     <img src="{{ $photoUrl }}" alt="" class="h-48 w-full object-cover"
-                                        x-show="!failed" x-transition.opacity.duration.200ms @error="failed = true">
+                                        x-show="!failed" x-transition.opacity.duration.200ms x-on:error="failed = true">
                                 @endif
                                 <div x-show="failed" x-transition.opacity.duration.200ms x-cloak
                                     class="flex h-48 w-full items-center justify-center bg-white/5">

@@ -84,6 +84,19 @@
                             <span class="menu-item-text">Kategori</span>
                         </a>
                     </li>
+                    
+                    <li>
+                        <a wire:navigate wire:current="bg-gray-100 text-gray-900 dark:bg-white/10"
+                            href="{{ route('superadmin.logs.index') }}"
+                            class="minimize-side-bar flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5">
+                            <svg class="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M5.25 4.5A2.25 2.25 0 0 1 7.5 2.25h9A2.25 2.25 0 0 1 18.75 4.5V6H20a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H8.25a.75.75 0 0 1-.75-.75V18H4.5A2.25 2.25 0 0 1 2.25 15.75v-9A2.25 2.25 0 0 1 4.5 4.5h.75Zm0 1.5a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75H7.5V6h-2.25Zm3 10.5v3h10.5V7.5H9.75v6a.75.75 0 0 1-.75.75H5.25Z" />
+                                <path d="M12 12.75h4.5a.75.75 0 0 0 0-1.5H12a.75.75 0 0 0 0 1.5Zm0-3H16.5a.75.75 0 0 0 0-1.5H12a.75.75 0 0 0 0 1.5Z" />
+                            </svg>
+                            <span class="menu-item-text">Logs</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         @elseif ($user?->role === 'Admin')
