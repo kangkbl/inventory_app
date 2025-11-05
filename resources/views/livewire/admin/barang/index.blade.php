@@ -151,11 +151,38 @@
                     </div>
                 </div>
             </div>
+            @if (count($selected) > 0)
+                <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {{ count($selected) }} barang dipilih.
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <button type="button" wire:click="cancelBulkSelection"
+                                class="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/10">
+                                Batalkan
+                            </button>
+                            <button type="button" wire:click="confirmBulkDelete"
+                                class="inline-flex items-center gap-2 rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow transition hover:bg-red-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M6 18 18 6m0 12L6 6" />
+                                </svg>
+                                Hapus Terpilih
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
             <div>
                 <table class="w-full table-auto">
                     <thead class="font-black divide-x divide-y divide-gray-200 dark:divide-gray-800">
                         <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800 ">
-
+                            <th class="w-12 px-5 py-4">
+                                <input type="checkbox" wire:model.live="selectAll"
+                                    class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500">
+                            </th>
                             <th class="cursor-pointer py-4 text-left text-xs  text-gray-500 dark:text-gray-400"
                                 @click="sortBy('name')">
                                 <div class="flex items-center gap-3">
@@ -344,6 +371,11 @@
                             <tr wire:key="barang-row-{{ $item->id }}"
                                 wire:click="openDetailModal({{ $item->id }})"
                                 class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
+                                <td class="px-5 py-4">
+                                    <input type="checkbox" value="{{ $item->id }}" wire:model.live="selected"
+                                        wire:click.stop
+                                        class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500">
+                                </td>
                                 <td class="py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
                                     {{ $loop->iteration }}</td>
                                 <td class="py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -387,7 +419,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                <td colspan="8" class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                                     Tidak ada barang yang cocok dengan filter saat ini.
                                 </td>
                             </tr>
