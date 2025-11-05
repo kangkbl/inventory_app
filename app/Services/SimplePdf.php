@@ -217,7 +217,7 @@ class SimplePdf
                 return null;
             }
 
-            $resource = @imagecreatefrompng($path);
+            $resource = $this->withSilencedErrors(fn () => $this->withSilencedOutput(static fn () => @imagecreatefrompng($path)));
 
             if ($resource === false) {
                 return null;
@@ -250,7 +250,9 @@ class SimplePdf
                 return null;
             }
 
-            if (! imagejpeg($background, $stream, 100)) {
+            $writeSucceeded = $this->withSilencedErrors(fn () => $this->withSilencedOutput(static fn () => imagejpeg($background, $stream, 100)));
+
+            if (! $writeSucceeded) {
                 imagedestroy($background);
                 fclose($stream);
 
@@ -286,6 +288,53 @@ class SimplePdf
         $this->pages[$this->currentPageIndex]['images'][$imageName] = true;
 
         return $drawHeight;
+    }
+
+     /**
+     * @template TValue
+     * @param  callable():TValue  $callback
+     * @return TValue
+     */
+    private function withSilencedOutput(callable $callback)
+    {
+        if (! function_exists('ob_start')) {
+            return $callback();
+        }
+
+        $level = ob_get_level();
+        $started = ob_start();
+
+        if ($started === false) {
+            return $callback();
+        }
+
+        try {
+            return $callback();
+        } finally {
+            while (ob_get_level() > $level) {
+                ob_end_clean();
+            }
+        }
+    }
+
+    /**
+     * @template TValue
+     * @param  callable():TValue  $callback
+     * @return TValue
+     */
+    private function withSilencedErrors(callable $callback)
+    {
+        if (! function_exists('set_error_handler') || ! function_exists('restore_error_handler')) {
+            return $callback();
+        }
+
+        set_error_handler(static fn () => true, E_WARNING);
+
+        try {
+            return $callback();
+        } finally {
+            restore_error_handler();
+        }
     }
 
     public function render(): string

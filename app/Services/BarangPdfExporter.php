@@ -5,7 +5,6 @@ namespace App\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use function public_path;
-use function resource_path;
 
 class BarangPdfExporter
 {
@@ -22,7 +21,7 @@ class BarangPdfExporter
     private const META_FONT_SIZE = 10.0;
     private const META_LEADING = 14.0;
 
-    private const LOGO_RELATIVE_PATH = 'images/tvri-logo.png';
+    private const LOGO_RELATIVE_PATH = 'images/tvri-logo.jpg';
     private const LOGO_MAX_WIDTH = 80.0;
     private const LOGO_MAX_HEIGHT = 40.0;
     private const LOGO_BOTTOM_SPACING = 6.0;
@@ -112,7 +111,6 @@ class BarangPdfExporter
     public function build(Collection $items): string
     {
         $pdf = new SimplePdf(width: self::PAGE_WIDTH, height: self::PAGE_HEIGHT, margin: self::PAGE_MARGIN);
-        $this->configureFonts($pdf);
         $printedAt = now();
         $lastUpdated = $this->resolveLastUpdated($items);
 
@@ -273,8 +271,7 @@ class BarangPdfExporter
             }
 
             $titleX = $this->resolveCenteredX($pdf, $trimmed, self::HEADER_FONT_SIZE);
-            $fontKey = $pdf->getBoldFontKey() ?? $pdf->getCurrentFontKey();
-            $pdf->addLine($trimmed, self::HEADER_FONT_SIZE, self::HEADER_LEADING, $titleX, $fontKey);
+            $pdf->addLine($trimmed, self::HEADER_FONT_SIZE, self::HEADER_LEADING, $titleX);
         }
 
         if ($logoBottom !== null) {
@@ -328,31 +325,6 @@ class BarangPdfExporter
         return $path;
     }
 
-    private function configureFonts(SimplePdf $pdf): void
-    {
-        if (! function_exists('resource_path')) {
-            return;
-        }
-
-        $regularPath = resource_path('fonts/Calibri-Regular.ttf');
-        $boldPath = resource_path('fonts/Calibri-Bold.ttf');
-
-        $hasRegular = is_file($regularPath);
-        $hasBold = is_file($boldPath);
-
-        if ($hasRegular) {
-            $pdf->registerTrueTypeFont('F1', $regularPath, 'Calibri');
-            $pdf->setCurrentFont('F1');
-        }
-
-        if ($hasBold) {
-            $pdf->registerTrueTypeFont('F2', $boldPath, 'Calibri-Bold', true);
-            $pdf->setBoldFontKey('F2');
-        } elseif ($hasRegular) {
-            $pdf->setBoldFontKey('F1');
-        }
-    }
-    
     /**
      * @param array<int, array<string, mixed>> $columns
      * @param array<int, float> $columnBoundaries
