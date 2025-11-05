@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Barang;
 
+use App\Livewire\Concerns\FormatsBarangHistory;
 use App\Livewire\Concerns\HandlesBarangImport;
 use App\Models\Barang;
 use App\Exports\BarangExport;
@@ -20,6 +21,7 @@ class Index extends Component
     use WithPagination;
     use WithFileUploads;
     use HandlesBarangImport;
+    use FormatsBarangHistory;
 
     protected $paginateTheme = 'tailwind';
 
@@ -57,18 +59,6 @@ class Index extends Component
     
     public ?string $selectedCategory = null;
 
-    
-    protected array $fieldLabels = [
-        'nama_barang'     => 'Nama Barang',
-        'merk'            => 'Merk',
-        'kode_barang_bmn' => 'Kode Barang BMN',
-        'kategori'        => 'Kategori',
-        'lokasi'          => 'Lokasi',
-        'kondisi'         => 'Kondisi',
-        'jumlah'          => 'Jumlah',
-        'tahun_pengadaan' => 'Tahun Pengadaan',
-        'keterangan'      => 'Keterangan',
-    ];
     
     public function render()
     {
@@ -420,7 +410,16 @@ class Index extends Component
     
     public function openDetailModal(int $barangId): void
     {
-        $barang = Barang::with('updatedBy')->findOrFail($barangId);
+        $barang = Barang::with('updatedBy')->find($barangId);
+
+        if (! $barang) {
+            $this->detailBarang = [];
+            $this->historyRecords = [];
+            $this->dispatch('notify', body: 'Barang tidak ditemukan atau telah dihapus.');
+            $this->dispatch('refresh-table');
+
+            return;
+        }
 
         $this->detailBarang = [
             'nama_barang'     => $barang->nama_barang,
@@ -435,6 +434,7 @@ class Index extends Component
             'created_at'      => optional($barang->created_at)->translatedFormat('d F Y H:i'),
             'updated_at'      => optional($barang->updated_at)->translatedFormat('d F Y H:i'),
             'updated_by'      => optional($barang->updatedBy)->name,
+            'photo_url'       => $barang->photo_url,
         ];
 
         $this->historyRecords = $this->formatHistoryRecords(
@@ -555,7 +555,7 @@ class Index extends Component
 
     protected function trackedFields(): array
     {
-        return array_keys($this->fieldLabels);
+        return array_keys($this->historyFieldLabels());
     }
 
     protected function compileCreationChanges(Barang $barang): array
@@ -603,53 +603,4 @@ class Index extends Component
         ]);
     }
 
-    protected function formatHistoryRecords($histories): array
-    {
-        return $histories->map(function ($history) {
-            return [
-                'id'        => $history->id,
-                'action'    => $this->formatHistoryAction($history->action),
-                'timestamp' => optional($history->created_at)->translatedFormat('d F Y H:i'),
-                'user'      => optional($history->updatedBy)->name,
-                'changes'   => $this->formatHistoryChanges($history->changes ?? []),
-            ];
-        })->toArray();
-    }
-
-    protected function formatHistoryAction(string $action): string
-    {
-        return match ($action) {
-            'created' => 'Ditambahkan',
-            'updated' => 'Diperbarui',
-            default   => ucfirst($action),
-        };
-    }
-
-    protected function formatHistoryChanges(array $changes): array
-    {
-        $formatted = [];
-
-        foreach ($changes as $field => $value) {
-            if (! array_key_exists($field, $this->fieldLabels)) {
-                continue;
-            }
-
-            $formatted[] = [
-                'label' => $this->fieldLabels[$field],
-                'old'   => $this->formatHistoryValue($value['old'] ?? null),
-                'new'   => $this->formatHistoryValue($value['new'] ?? null),
-            ];
-        }
-
-        return $formatted;
-    }
-
-    protected function formatHistoryValue($value): string
-    {
-        if ($value === null || $value === '') {
-            return '-';
-        }
-
-        return (string) $value;
-    }
 }
