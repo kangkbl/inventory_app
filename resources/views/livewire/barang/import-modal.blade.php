@@ -12,9 +12,22 @@
         openImportModal: @entangle('showImportModal').live,
         closeModal() {
             this.openImportModal = false;
-            this.$nextTick(() => $wire.cancelImport());
+            this.$nextTick(() => {
+                this.clearFileInput();
+                $wire.cancelImport();
+            });
+        },
+        clearFileInput() {
+            if (this.$refs.importFile) {
+                this.$refs.importFile.value = '';
+            }
         }
-    }" x-cloak x-on:keydown.escape.window="closeModal()">
+    }"
+    x-init="$watch('openImportModal', value => { if (!value) { this.clearFileInput(); } })"
+    x-effect="if (! $wire.importFile) { this.clearFileInput(); }"
+    x-cloak
+    x-on:keydown.escape.window="closeModal()"
+>
     <div
         x-show="openImportModal"
         x-transition.opacity.duration.200ms
@@ -55,6 +68,7 @@
                         <div>
                             <label for="{{ $inputId }}" class="block text-sm text-gray-300">Pilih Berkas CSV</label>
                             <input id="{{ $inputId }}" type="file" wire:model="importFile" accept=".csv,text/csv"
+                                x-ref="importFile"
                                 class="mt-1 w-full rounded-lg border {{ $errors->has('importFile') ? 'border-red-500' : 'border-gray-700' }} bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-400">
                             <p class="mt-2 text-xs text-gray-400">Berkas maksimal 5MB dengan format CSV.</p>
                         </div>
