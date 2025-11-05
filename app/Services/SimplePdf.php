@@ -83,6 +83,25 @@ class SimplePdf
         $this->currentY -= $leading;
     }
 
+    public function addText(float $x, float $y, string $text, float $fontSize = 11): void
+    {
+        $this->ensurePageExists();
+
+        if ($text === '') {
+            $text = ' ';
+        }
+
+        $escaped = $this->escapeText($text);
+
+        $this->pages[$this->currentPageIndex]['content'] .= sprintf(
+            "BT /F1 %.2f Tf %.2f %.2f Td (%s) Tj ET\n",
+            $fontSize,
+            $x,
+            $y,
+            $escaped,
+        );
+    }
+
     public function addSpacing(float $leading = 10): void
     {
         $this->ensureSpace($leading);
@@ -114,6 +133,45 @@ class SimplePdf
         if ($y < $this->currentY) {
             $this->currentY = $y;
         }
+    }
+
+    public function drawLine(float $x1, float $y1, float $x2, float $y2, float $width = 1.0): void
+    {
+        $this->ensurePageExists();
+
+        $this->pages[$this->currentPageIndex]['content'] .= sprintf(
+            "q %.2f w %.2f %.2f m %.2f %.2f l S Q\n",
+            $width,
+            $x1,
+            $y1,
+            $x2,
+            $y2,
+        );
+    }
+
+    public function getPageWidth(): float
+    {
+        return $this->width;
+    }
+
+    public function getPageHeight(): float
+    {
+        return $this->height;
+    }
+
+    public function getMarginLeft(): float
+    {
+        return $this->marginLeft;
+    }
+
+    public function getMarginTop(): float
+    {
+        return $this->marginTop;
+    }
+
+    public function getMarginBottom(): float
+    {
+        return $this->marginBottom;
     }
 
     public function drawImageFromPath(string $path, float $topY, float $x, float $maxWidth, float $maxHeight): ?float
