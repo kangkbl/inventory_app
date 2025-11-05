@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Barang;
 
+use App\Livewire\Concerns\HandlesBarangImport;
 use App\Models\Barang;
 use App\Exports\BarangExport;
 use App\Services\BarangPdfExporter;
@@ -10,12 +11,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 class Index extends Component
 {
     use WithPagination;
+    use WithFileUploads;
+    use HandlesBarangImport;
 
     protected $paginateTheme = 'tailwind';
 
@@ -38,6 +42,9 @@ class Index extends Component
     public ?int $editingId = null;
     public array $detailBarang = [];
     public array $historyRecords = [];
+
+    public array $selected = [];
+    public bool $selectAll = false;
 
 
     public array $kondisiOptions = [
@@ -98,12 +105,13 @@ class Index extends Component
 
     public function updatingSearch(): void
     {
+        $this->clearSelection();
         $this->resetPage();
     }
 
-
-public function updatedPaginate(): void
+    public function updatedPaginate(): void
     {
+        $this->clearSelection();
         $this->resetPage();
     }
 
@@ -116,6 +124,88 @@ public function updatedPaginate(): void
         }
 
         $this->selectedCategory = $this->selectedCategory === $normalized ? null : $normalized;
+        $this->clearSelection();
+        $this->resetPage();
+    }
+
+    public function updatedSelectAll(bool $value): void
+    {
+        if ($value) {
+            $this->selected = $this->baseQuery()
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            return;
+        }
+
+        $this->selected = [];
+    }
+
+    public function updatedSelected(): void
+    {
+        if (empty($this->selected)) {
+            $this->selectAll = false;
+
+            return;
+        }
+
+        $total = $this->baseQuery()->count();
+
+        $this->selectAll = count($this->selected) >= $total && $total > 0;
+    }
+
+    public function confirmBulkDelete(): void
+    {
+        $selectedIds = array_values(array_unique(array_map('intval', $this->selected)));
+
+        if (empty($selectedIds)) {
+            $this->dispatch('notify', body: 'Pilih minimal satu barang terlebih dahulu.');
+
+            return;
+        }
+
+        $this->dispatch('confirm-delete',
+            id: $selectedIds,
+            eventName: 'admin-barang-bulk-delete',
+            payloadKey: 'barangIds',
+            title: 'Hapus Barang Terpilih?',
+            text: sprintf('%d barang terpilih akan dihapus dan tidak dapat dikembalikan.', count($selectedIds)),
+            confirmButtonText: 'Ya, hapus semua',
+            cancelButtonText: 'Batal',
+        );
+    }
+
+    public function cancelBulkSelection(): void
+    {
+        $this->clearSelection();
+    }
+
+    #[On('admin-barang-bulk-delete')]
+    public function deleteSelected(array $barangIds): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $barangIds)));
+
+        if (empty($ids)) {
+            return;
+        }
+
+        if ($this->editingId && in_array($this->editingId, $ids, true)) {
+            $this->cancelEdit();
+        }
+
+        $items = Barang::whereIn('id', $ids)->get(['id']);
+
+        foreach ($items as $barang) {
+            $barang->delete();
+        }
+
+        $this->dispatch('notify', body: sprintf('%d barang berhasil dihapus.', $items->count()));
+        $this->clearSelection();
+        $this->dispatch('refresh-table');
+        $this->dispatch('snapshot-refresh');
         $this->resetPage();
     }
 
@@ -432,6 +522,7 @@ public function updatedPaginate(): void
         $this->dispatch('refresh-table');
         $this->dispatch('snapshot-refresh');
         $this->resetPage();
+        $this->clearSelection();
     }
 
     public function resetForm(): void
@@ -449,6 +540,12 @@ public function updatedPaginate(): void
         ]);
 
         $this->resetValidation();
+    }
+
+    protected function clearSelection(): void
+    {
+        $this->selected = [];
+        $this->selectAll = false;
     }
     
     protected function dispatchSnapshotRefresh(): void

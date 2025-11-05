@@ -40,12 +40,20 @@
                             </button>
                         </div>
                         <div class="space-y-4">
-                            @if ($photoUrl = data_get($detailBarang, 'photo_url'))
-                                <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                                    <img src="{{ $photoUrl }}" alt="Foto {{ data_get($detailBarang, 'nama_barang', 'Barang') }}"
-                                        class="h-48 w-full object-cover">
+                            @php
+                                $photoUrl = data_get($detailBarang, 'photo_url');
+                            @endphp
+                            <div class="overflow-hidden rounded-lg border border-white/10 bg-white/5"
+                                x-data="{ failed: {{ $photoUrl ? 'false' : 'true' }} }">
+                                @if ($photoUrl)
+                                    <img src="{{ $photoUrl }}" alt="" class="h-48 w-full object-cover"
+                                        x-show="!failed" x-transition.opacity.duration.200ms @error="failed = true">
+                                @endif
+                                <div x-show="failed" x-transition.opacity.duration.200ms x-cloak
+                                    class="flex h-48 w-full items-center justify-center bg-white/5">
+                                    <span class="text-5xl font-semibold text-white">!</span>
                                 </div>
-                            @endif
+                            </div>
                             <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                                 <div>
                                     <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Nama Barang</dt>

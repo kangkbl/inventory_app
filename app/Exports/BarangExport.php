@@ -81,7 +81,6 @@ class BarangExport implements FromCollection, WithHeadings, WithMapping, WithSty
             $barang->jumlah,
             $barang->tahun_pengadaan,
             $barang->keterangan ?? '-',
-            $barang->photo_url ?? '-',
             $photoCellValue,
             optional($barang->created_at)?->format('d-m-Y H:i'),
             optional($barang->updated_at)?->format('d-m-Y H:i'),
