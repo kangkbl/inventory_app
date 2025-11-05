@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use function public_path;
 
 class BarangPdfExporter
 {
@@ -11,11 +12,19 @@ class BarangPdfExporter
     private const PAGE_HEIGHT = 842.0;
     private const PAGE_MARGIN = 30.0;
 
-    private const HEADER_TITLE = 'LAPORAN INVENTARIS PERALATAN TRANSMISI JOGLO';
+    private const HEADER_TITLE_LINES = [
+        'LAPORAN INVENTARIS',
+        'PERALATAN TRANSMISI JOGLO',
+    ];
     private const HEADER_FONT_SIZE = 16.0;
     private const HEADER_LEADING = 22.0;
     private const META_FONT_SIZE = 10.0;
     private const META_LEADING = 14.0;
+
+    private const LOGO_RELATIVE_PATH = 'images/tvri-logo.png';
+    private const LOGO_MAX_WIDTH = 80.0;
+    private const LOGO_MAX_HEIGHT = 40.0;
+    private const LOGO_BOTTOM_SPACING = 6.0;
 
     private const TABLE_HEADER_FONT_SIZE = 11.0;
     private const TABLE_HEADER_LINE_HEIGHT = 14.0;
@@ -252,13 +261,68 @@ class BarangPdfExporter
 
     private function renderHeader(SimplePdf $pdf, Carbon $printedAt, ?Carbon $lastUpdated, int $pageNumber): void
     {
-        $titleX = $this->resolveCenteredX($pdf, self::HEADER_TITLE, self::HEADER_FONT_SIZE);
-        $pdf->addLine(self::HEADER_TITLE, self::HEADER_FONT_SIZE, self::HEADER_LEADING, $titleX);
+        $logoBottom = $this->renderLogo($pdf);
+
+        foreach (self::HEADER_TITLE_LINES as $line) {
+            $trimmed = trim($line);
+
+            if ($trimmed === '') {
+                continue;
+            }
+
+            $titleX = $this->resolveCenteredX($pdf, $trimmed, self::HEADER_FONT_SIZE);
+            $pdf->addLine($trimmed, self::HEADER_FONT_SIZE, self::HEADER_LEADING, $titleX);
+        }
+
+        if ($logoBottom !== null) {
+            $minimumY = $logoBottom - self::LOGO_BOTTOM_SPACING;
+
+            if ($pdf->getCursorY() > $minimumY) {
+                $pdf->moveCursorTo($minimumY);
+            }
+        }
 
         $margin = $pdf->getMarginLeft();
         $pdf->addLine('Tgl Update : ' . $this->formatTimestamp($lastUpdated), self::META_FONT_SIZE, self::META_LEADING, $margin);
         $pdf->addLine('Tgl Cetak  : ' . $this->formatTimestamp($printedAt), self::META_FONT_SIZE, self::META_LEADING, $margin);
         $pdf->addLine('Halaman    : ' . $pageNumber, self::META_FONT_SIZE, self::META_LEADING, $margin);
+    }
+
+    private function renderLogo(SimplePdf $pdf): ?float
+    {
+        $path = $this->resolveLogoPath();
+
+        if ($path === null) {
+            return null;
+        }
+
+        $topY = $pdf->getPageHeight() - $pdf->getMarginTop();
+        $drawnHeight = $pdf->drawImageFromPath($path, $topY, $pdf->getMarginLeft(), self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
+
+        if ($drawnHeight === null) {
+            return null;
+        }
+
+        return $topY - $drawnHeight;
+    }
+
+    private function resolveLogoPath(): ?string
+    {
+        if (! function_exists('public_path')) {
+            return null;
+        }
+
+        $path = public_path(self::LOGO_RELATIVE_PATH);
+
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     /**
