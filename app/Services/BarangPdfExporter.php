@@ -284,7 +284,7 @@ class BarangPdfExporter
 
         $margin = $pdf->getMarginLeft();
         $pdf->addLine('Tgl Update : ' . $this->formatTimestamp($lastUpdated), self::META_FONT_SIZE, self::META_LEADING, $margin);
-        $pdf->addLine('Tgl Cetak  : ' . $this->formatTimestamp($printedAt), self::META_FONT_SIZE, self::META_LEADING, $margin);
+        $pdf->addLine('Tgl Cetak   : ' . $this->formatTimestamp($printedAt), self::META_FONT_SIZE, self::META_LEADING, $margin);
         $pdf->addLine('Halaman    : ' . $pageNumber, self::META_FONT_SIZE, self::META_LEADING, $margin);
     }
 

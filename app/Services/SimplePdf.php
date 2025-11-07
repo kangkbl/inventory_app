@@ -11,7 +11,7 @@ class SimplePdf
     private float $marginBottom;
 
     /**
-     * @var array<int, array{content: string, images: array<string, true>, fonts: array<string, true>}>
+     * @var array<int, array{content: string, images: array<string, true>}>
      */
     private array $pages = [];
 
@@ -31,15 +31,6 @@ class SimplePdf
 
     private int $imageCounter = 0;
 
-    /**
-     * @var array<string, array<string, mixed>>
-     */
-    private array $fonts = [];
-
-    private string $currentFontKey;
-
-    private ?string $boldFontKey = null;
-
     public function __construct(float $width = 595.28, float $height = 841.89, float $margin = 40.0)
     {
         $this->width = $width;
@@ -47,15 +38,11 @@ class SimplePdf
         $this->marginLeft = $margin;
         $this->marginTop = $margin;
         $this->marginBottom = $margin;
-        $this->registerType1Font('F1', 'Helvetica');
-        $this->registerType1Font('F2', 'Helvetica-Bold');
-        $this->currentFontKey = 'F1';
-        $this->boldFontKey = 'F2';
     }
 
     public function addPage(): void
     {
-        $this->pages[] = ['content' => '', 'images' => [], 'fonts' => []];
+        $this->pages[] = ['content' => '', 'images' => []];
         $this->currentPageIndex = count($this->pages) - 1;
         $this->currentY = $this->height - $this->marginTop;
     }
@@ -73,7 +60,7 @@ class SimplePdf
         }
     }
 
-    public function addLine(string $text = '', float $fontSize = 11, float $leading = 14, ?float $x = null, ?string $fontKey = null): void
+    public function addLine(string $text = '', float $fontSize = 11, float $leading = 14, ?float $x = null): void
     {
         $x ??= $this->marginLeft;
         $this->ensureSpace($leading);
@@ -84,23 +71,19 @@ class SimplePdf
 
         $escaped = $this->escapeText($text);
         $y = $this->currentY;
-        $fontKey = $this->resolveFontKey($fontKey);
 
         $this->pages[$this->currentPageIndex]['content'] .= sprintf(
-            "BT /%s %.2f Tf %.2f %.2f Td (%s) Tj ET\n",
-            $fontKey,
+            "BT /F1 %.2f Tf %.2f %.2f Td (%s) Tj ET\n",
             $fontSize,
             $x,
             $y,
             $escaped,
         );
 
-        $this->pages[$this->currentPageIndex]['fonts'][$fontKey] = true;
-
         $this->currentY -= $leading;
     }
 
-    public function addText(float $x, float $y, string $text, float $fontSize = 11, ?string $fontKey = null): void
+    public function addText(float $x, float $y, string $text, float $fontSize = 11): void
     {
         $this->ensurePageExists();
 
@@ -109,18 +92,14 @@ class SimplePdf
         }
 
         $escaped = $this->escapeText($text);
-        $fontKey = $this->resolveFontKey($fontKey);
 
         $this->pages[$this->currentPageIndex]['content'] .= sprintf(
-            "BT /%s %.2f Tf %.2f %.2f Td (%s) Tj ET\n",
-            $fontKey,
+            "BT /F1 %.2f Tf %.2f %.2f Td (%s) Tj ET\n",
             $fontSize,
             $x,
             $y,
             $escaped,
         );
-
-        $this->pages[$this->currentPageIndex]['fonts'][$fontKey] = true;
     }
 
     public function addSpacing(float $leading = 10): void
@@ -208,64 +187,13 @@ class SimplePdf
         [$imageWidth, $imageHeight] = $info;
         $mime = strtolower((string) $info['mime']);
 
-        $data = null;
-
-        if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
-            $data = @file_get_contents($path);
-        } elseif ($mime === 'image/png') {
-            if (! function_exists('imagecreatefrompng') || ! function_exists('imagecreatetruecolor') || ! function_exists('imagejpeg')) {
-                return null;
-            }
-
-            $resource = $this->withSilencedErrors(fn () => $this->withSilencedOutput(static fn () => @imagecreatefrompng($path)));
-
-            if ($resource === false) {
-                return null;
-            }
-
-            $imageWidth = imagesx($resource);
-            $imageHeight = imagesy($resource);
-            $background = @imagecreatetruecolor($imageWidth, $imageHeight);
-
-            if ($background === false) {
-                imagedestroy($resource);
-
-                return null;
-            }
-
-            if (function_exists('imagealphablending')) {
-                imagealphablending($background, true);
-            }
-
-            $white = imagecolorallocate($background, 255, 255, 255);
-            imagefilledrectangle($background, 0, 0, $imageWidth, $imageHeight, $white);
-            imagecopy($background, $resource, 0, 0, 0, 0, $imageWidth, $imageHeight);
-            imagedestroy($resource);
-
-            $stream = fopen('php://temp', 'w+b');
-
-            if ($stream === false) {
-                imagedestroy($background);
-
-                return null;
-            }
-
-            $writeSucceeded = $this->withSilencedErrors(fn () => $this->withSilencedOutput(static fn () => imagejpeg($background, $stream, 100)));
-
-            if (! $writeSucceeded) {
-                imagedestroy($background);
-                fclose($stream);
-
-                return null;
-            }
-
-            imagedestroy($background);
-            rewind($stream);
-            $data = stream_get_contents($stream);
-            fclose($stream);
+        if ($mime !== 'image/jpeg' && $mime !== 'image/jpg') {
+            return null;
         }
 
-        if ($data === false || $data === null) {
+        $data = @file_get_contents($path);
+
+        if ($data === false) {
             return null;
         }
 
@@ -290,53 +218,6 @@ class SimplePdf
         return $drawHeight;
     }
 
-     /**
-     * @template TValue
-     * @param  callable():TValue  $callback
-     * @return TValue
-     */
-    private function withSilencedOutput(callable $callback)
-    {
-        if (! function_exists('ob_start')) {
-            return $callback();
-        }
-
-        $level = ob_get_level();
-        $started = ob_start();
-
-        if ($started === false) {
-            return $callback();
-        }
-
-        try {
-            return $callback();
-        } finally {
-            while (ob_get_level() > $level) {
-                ob_end_clean();
-            }
-        }
-    }
-
-    /**
-     * @template TValue
-     * @param  callable():TValue  $callback
-     * @return TValue
-     */
-    private function withSilencedErrors(callable $callback)
-    {
-        if (! function_exists('set_error_handler') || ! function_exists('restore_error_handler')) {
-            return $callback();
-        }
-
-        set_error_handler(static fn () => true, E_WARNING);
-
-        try {
-            return $callback();
-        } finally {
-            restore_error_handler();
-        }
-    }
-
     public function render(): string
     {
         $this->ensurePageExists();
@@ -346,20 +227,7 @@ class SimplePdf
 
         $catalogNumber = $objectNumber++;
         $pagesNumber = $objectNumber++;
-        
-        $fontObjectNumbers = [];
-
-        foreach ($this->fonts as $fontKey => &$font) {
-            $font['objectNumber'] = $objectNumber++;
-
-            if (($font['kind'] ?? null) === 'truetype') {
-                $font['descriptorObjectNumber'] = $objectNumber++;
-                $font['fileObjectNumber'] = $objectNumber++;
-            }
-
-            $fontObjectNumbers[$fontKey] = $font['objectNumber'];
-        }
-        unset($font);
+        $fontNumber = $objectNumber++;
 
         $contentNumbers = [];
         $pageNumbers = [];
@@ -381,61 +249,7 @@ class SimplePdf
             $pdf .= $number . " 0 obj\n" . $content . "\nendobj\n";
         };
 
-        foreach ($this->fonts as $fontKey => $font) {
-            if (($font['kind'] ?? null) === 'truetype') {
-                $prepared = $font['prepared'] ?? $this->prepareTrueTypeFont($font);
-                $this->fonts[$fontKey]['prepared'] = $prepared;
-
-                $descriptor = sprintf(
-                    "<< /Type /FontDescriptor /FontName /%s /Ascent %d /Descent %d /CapHeight %d /Flags %d /ItalicAngle %.2f /StemV %d /FontBBox [%d %d %d %d] /FontFile2 %d 0 R >>",
-                    $prepared['fontName'],
-                    $prepared['ascent'],
-                    $prepared['descent'],
-                    $prepared['capHeight'],
-                    $prepared['flags'],
-                    $prepared['italicAngle'],
-                    $prepared['stemV'],
-                    $prepared['bbox'][0],
-                    $prepared['bbox'][1],
-                    $prepared['bbox'][2],
-                    $prepared['bbox'][3],
-                    $font['fileObjectNumber'],
-                );
-
-                $addObject($font['descriptorObjectNumber'], $descriptor);
-
-                $widths = implode(' ', $prepared['widths']);
-                $fontObject = sprintf(
-                    "<< /Type /Font /Subtype /TrueType /BaseFont /%s /Encoding /WinAnsiEncoding /FirstChar %d /LastChar %d /Widths [%s] /FontDescriptor %d 0 R >>",
-                    $prepared['fontName'],
-                    $prepared['firstChar'],
-                    $prepared['lastChar'],
-                    $widths,
-                    $font['descriptorObjectNumber'],
-                );
-
-                $addObject($font['objectNumber'], $fontObject);
-
-                $fontData = $prepared['data'];
-
-                if (! str_ends_with($fontData, "\n")) {
-                    $fontData .= "\n";
-                }
-
-                $stream = sprintf(
-                    "<< /Length %d >>\nstream\n%s\nendstream\n",
-                    strlen($fontData),
-                    $fontData,
-                );
-
-                $addObject($font['fileObjectNumber'], $stream);
-
-                continue;
-            }
-
-            $baseFont = $font['baseFont'] ?? 'Helvetica';
-            $addObject($font['objectNumber'], sprintf('<< /Type /Font /Subtype /Type1 /BaseFont /%s >>', $baseFont));
-        }
+        $addObject($fontNumber, "<< /Type /Font /Subtype /Type1 /BaseFont /Calibri >>");
 
         foreach ($this->imageRegistry as $name => $image) {
             $data = $image['data'];
@@ -476,17 +290,7 @@ class SimplePdf
             $contentNumber = $contentNumbers[$index];
             $addObject($contentNumber, $stream);
 
-            $fontRefs = [];
-
-            foreach ($fontObjectNumbers as $fontKey => $objectNumber) {
-                $fontRefs[] = sprintf('/%s %d 0 R', $fontKey, $objectNumber);
-            }
-
-            $resourceParts = [];
-
-            if ($fontRefs !== []) {
-                $resourceParts[] = sprintf('/Font << %s >>', implode(' ', $fontRefs));
-            }
+            $resourceParts = [sprintf('/Font << /F1 %d 0 R >>', $fontNumber)];
 
             if ($page['images'] !== []) {
                 $imageRefs = [];
@@ -664,190 +468,5 @@ class SimplePdf
         ];
 
         return $name;
-    }
-
-    private function resolveFontKey(?string $fontKey): string
-    {
-        if ($fontKey !== null && isset($this->fonts[$fontKey])) {
-            return $fontKey;
-        }
-
-        if (isset($this->fonts[$this->currentFontKey])) {
-            return $this->currentFontKey;
-        }
-
-        return array_key_first($this->fonts) ?? 'F1';
-    }
-
-    public function setCurrentFont(string $fontKey): void
-    {
-        if (isset($this->fonts[$fontKey])) {
-            $this->currentFontKey = $fontKey;
-        }
-    }
-
-    public function getCurrentFontKey(): string
-    {
-        return $this->currentFontKey;
-    }
-
-    public function setBoldFontKey(?string $fontKey): void
-    {
-        if ($fontKey !== null && ! isset($this->fonts[$fontKey])) {
-            return;
-        }
-
-        $this->boldFontKey = $fontKey;
-    }
-
-    public function getBoldFontKey(): ?string
-    {
-        return $this->boldFontKey;
-    }
-
-    public function withFont(string $fontKey, callable $callback): void
-    {
-        if (! isset($this->fonts[$fontKey])) {
-            $callback($this);
-
-            return;
-        }
-
-        $previous = $this->currentFontKey;
-        $this->currentFontKey = $fontKey;
-
-        try {
-            $callback($this);
-        } finally {
-            $this->currentFontKey = $previous;
-        }
-    }
-
-    public function registerType1Font(string $fontKey, string $baseFont): void
-    {
-        $this->fonts[$fontKey] = [
-            'kind' => 'type1',
-            'baseFont' => $baseFont,
-        ];
-    }
-
-    public function registerTrueTypeFont(string $fontKey, string $path, string $fontName, bool $isBold = false): void
-    {
-        if (! is_file($path)) {
-            return;
-        }
-
-        $data = @file_get_contents($path);
-
-        if ($data === false) {
-            return;
-        }
-
-        $this->fonts[$fontKey] = [
-            'kind' => 'truetype',
-            'baseFont' => $fontName,
-            'fontPath' => $path,
-            'fontData' => $data,
-            'isBold' => $isBold,
-        ];
-    }
-
-    /**
-     * @param array{fontPath: string, fontData: string, baseFont: string, isBold?: bool} $font
-     * @return array{fontName: string, firstChar: int, lastChar: int, widths: array<int, int>, ascent: int, descent: int, capHeight: int, flags: int, italicAngle: float, stemV: int, bbox: array<int, int>, data: string}
-     */
-    private function prepareTrueTypeFont(array $font): array
-    {
-        $fontName = str_replace(' ', '', $font['baseFont']);
-        $firstChar = 32;
-        $lastChar = 126;
-        $size = 1000;
-        $path = $font['fontPath'];
-
-        if (! function_exists('imagettfbbox')) {
-            $widthCount = ($lastChar - $firstChar) + 1;
-            $widths = array_fill(0, $widthCount, 600);
-            $flags = 32;
-
-            if (! empty($font['isBold'])) {
-                $flags |= 262144;
-            }
-
-            return [
-                'fontName' => $fontName,
-                'firstChar' => $firstChar,
-                'lastChar' => $lastChar,
-                'widths' => $widths,
-                'ascent' => 800,
-                'descent' => -200,
-                'capHeight' => 700,
-                'flags' => $flags,
-                'italicAngle' => 0.0,
-                'stemV' => ! empty($font['isBold']) ? 120 : 80,
-                'bbox' => [0, -200, 1000, 800],
-                'data' => $font['fontData'],
-            ];
-        }
-
-        $widths = [];
-        $minX = 0;
-        $maxX = 0;
-        $maxAscent = 0;
-        $maxDescent = 0;
-
-        for ($code = $firstChar; $code <= $lastChar; $code++) {
-            $char = chr($code);
-            $box = @imagettfbbox($size, 0, $path, $char);
-
-            if ($box === false) {
-                $widths[] = 600;
-
-                continue;
-            }
-
-            $minX = min($minX, $box[0], $box[2], $box[4], $box[6]);
-            $maxX = max($maxX, $box[0], $box[2], $box[4], $box[6]);
-            $maxAscent = max($maxAscent, -min($box[1], $box[3], $box[5], $box[7]));
-            $maxDescent = max($maxDescent, max($box[1], $box[3], $box[5], $box[7]));
-
-            $width = (int) round(max($box[2], $box[4]) - min($box[0], $box[6]));
-            $widths[] = max(0, $width);
-        }
-
-        $capBox = @imagettfbbox($size, 0, $path, 'H');
-        $capHeight = $capBox !== false
-            ? (int) round(abs(min($capBox[1], $capBox[3], $capBox[5], $capBox[7])))
-            : (int) round($maxAscent);
-
-        $bbox = [
-            (int) floor($minX),
-            (int) floor(-$maxDescent),
-            (int) ceil($maxX),
-            (int) ceil($maxAscent),
-        ];
-
-        $flags = 32;
-
-        if (! empty($font['isBold'])) {
-            $flags |= 262144;
-        }
-
-        $italicAngle = 0.0;
-        $stemV = ! empty($font['isBold']) ? 120 : 80;
-
-        return [
-            'fontName' => $fontName,
-            'firstChar' => $firstChar,
-            'lastChar' => $lastChar,
-            'widths' => $widths,
-            'ascent' => (int) round($maxAscent),
-            'descent' => (int) round(-$maxDescent),
-            'capHeight' => (int) round($capHeight),
-            'flags' => $flags,
-            'italicAngle' => $italicAngle,
-            'stemV' => $stemV,
-            'bbox' => $bbox,
-            'data' => $font['fontData'],
-        ];
     }
 }
