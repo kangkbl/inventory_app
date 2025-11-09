@@ -228,19 +228,40 @@ class SimplePdf
             return null;
         }
 
-        if (! preg_match('/viewBox="([^"]+)"/i', $contents, $viewBoxMatch)) {
-            return null;
+        $minX = 0.0;
+        $minY = 0.0;
+        $viewBoxWidth = null;
+        $viewBoxHeight = null;
+
+        if (preg_match('/viewBox="([^"]+)"/i', $contents, $viewBoxMatch)) {
+            $viewBoxParts = preg_split('/[\s,]+/', trim($viewBoxMatch[1]));
+
+            if ($viewBoxParts === false || count($viewBoxParts) !== 4) {
+                return null;
+            }
+
+            [$minX, $minY, $viewBoxWidth, $viewBoxHeight] = array_map('floatval', $viewBoxParts);
+        } else {
+            $viewBoxWidth = $this->parseSvgLengthAttribute($contents, 'width');
+            $viewBoxHeight = $this->parseSvgLengthAttribute($contents, 'height');
+
+            if ($viewBoxWidth === null || $viewBoxHeight === null) {
+                return null;
+            }
+
+            $minXAttr = $this->parseSvgLengthAttribute($contents, 'x');
+            $minYAttr = $this->parseSvgLengthAttribute($contents, 'y');
+
+            if ($minXAttr !== null) {
+                $minX = $minXAttr;
+            }
+
+            if ($minYAttr !== null) {
+                $minY = $minYAttr;
+            }
         }
 
-        $viewBoxParts = preg_split('/\s+/', trim($viewBoxMatch[1]));
-
-        if ($viewBoxParts === false || count($viewBoxParts) !== 4) {
-            return null;
-        }
-
-        [$minX, $minY, $viewBoxWidth, $viewBoxHeight] = array_map('floatval', $viewBoxParts);
-
-        if ($viewBoxWidth <= 0 || $viewBoxHeight <= 0) {
+        if ($viewBoxWidth === null || $viewBoxHeight === null || $viewBoxWidth <= 0 || $viewBoxHeight <= 0) {
             return null;
         }
 
@@ -254,6 +275,18 @@ class SimplePdf
 
         if (preg_match('/fill="([^"]+)"/i', $pathMatch[0], $fillMatch)) {
             $fillColor = (string) $fillMatch[1];
+        } elseif (preg_match('/style="([^"]+)"/i', $pathMatch[0], $styleMatch)) {
+            $styleDeclarations = explode(';', $styleMatch[1]);
+
+            foreach ($styleDeclarations as $declaration) {
+                [$property, $value] = array_pad(array_map('trim', explode(':', $declaration, 2)), 2, null);
+
+                if ($property === 'fill' && $value !== null && $value !== '') {
+                    $fillColor = $value;
+
+                    break;
+                }
+            }
         }
 
         $pdfPath = $this->convertSvgPathToPdfPath($pathData);
@@ -313,13 +346,51 @@ class SimplePdf
         return [0.0, 0.0, 0.0];
     }
 
+    private function parseSvgLengthAttribute(string $svg, string $attribute): ?float
+    {
+        if (! preg_match('/\b' . preg_quote($attribute, '/') . '="([^"]+)"/i', $svg, $match)) {
+            return null;
+        }
+
+        return $this->parseSvgLength($match[1]);
+    }
+
+    private function parseSvgLength(string $value): ?float
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (! preg_match('/^([-+]?\d*\.?\d+)([a-z%]*)$/i', $value, $parts)) {
+            if (preg_match('/([-+]?\d*\.?\d+)/', $value, $fallback)) {
+                return (float) $fallback[1];
+            }
+
+            return null;
+        }
+
+        $number = (float) $parts[1];
+        $unit = strtolower($parts[2] ?? '');
+
+        return match ($unit) {
+            '', 'px' => $number,
+            'pt' => $number * (96.0 / 72.0),
+            'in' => $number * 96.0,
+            'cm' => $number * (96.0 / 2.54),
+            'mm' => $number * (96.0 / 25.4),
+            default => null,
+        };
+    }
+
     private function convertSvgPathToPdfPath(string $pathData): string
     {
         if ($pathData === '') {
             return '';
         }
 
-        if (! preg_match_all('/([MLHVCSZ])|([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)/', $pathData, $matches)) {
+        if (! preg_match_all('/([MmLlHhVvCcZz])|([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)/', $pathData, $matches)) {
             return '';
         }
 
@@ -352,6 +423,8 @@ class SimplePdf
             }
 
             $command = $token['value'];
+            $absoluteCommand = strtoupper($command);
+            $isRelative = $command !== $absoluteCommand;
             $i++;
 
             $numbers = [];
@@ -361,7 +434,7 @@ class SimplePdf
                 $i++;
             }
 
-            switch ($command) {
+            switch ($absoluteCommand) {
                 case 'M':
                     $pairs = count($numbers) / 2;
 
@@ -371,6 +444,11 @@ class SimplePdf
 
                         if ($x === null || $y === null) {
                             return '';
+                        }
+
+                        if ($isRelative) {
+                            $x += $currentX;
+                            $y += $currentY;
                         }
 
                         if ($j === 0) {
@@ -398,6 +476,11 @@ class SimplePdf
                             return '';
                         }
 
+                        if ($isRelative) {
+                            $x += $currentX;
+                            $y += $currentY;
+                        }
+
                         $result[] = sprintf('%.4f %.4f l ', $x, $y);
                         $currentX = $x;
                         $currentY = $y;
@@ -407,7 +490,12 @@ class SimplePdf
 
                 case 'H':
                     foreach ($numbers as $x) {
-                        $currentX = $x;
+                        if ($isRelative) {
+                            $currentX += $x;
+                        } else {
+                            $currentX = $x;
+                        }
+
                         $result[] = sprintf('%.4f %.4f l ', $currentX, $currentY);
                     }
 
@@ -415,7 +503,12 @@ class SimplePdf
 
                 case 'V':
                     foreach ($numbers as $y) {
-                        $currentY = $y;
+                        if ($isRelative) {
+                            $currentY += $y;
+                        } else {
+                            $currentY = $y;
+                        }
+
                         $result[] = sprintf('%.4f %.4f l ', $currentX, $currentY);
                     }
 
@@ -434,6 +527,15 @@ class SimplePdf
 
                         if ($x1 === null || $y1 === null || $x2 === null || $y2 === null || $x === null || $y === null) {
                             return '';
+                        }
+
+                        if ($isRelative) {
+                            $x1 += $currentX;
+                            $y1 += $currentY;
+                            $x2 += $currentX;
+                            $y2 += $currentY;
+                            $x += $currentX;
+                            $y += $currentY;
                         }
 
                         $result[] = sprintf('%.4f %.4f %.4f %.4f %.4f %.4f c ', $x1, $y1, $x2, $y2, $x, $y);
