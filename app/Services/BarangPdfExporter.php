@@ -21,7 +21,7 @@ class BarangPdfExporter
     private const META_FONT_SIZE = 10.0;
     private const META_LEADING = 14.0;
 
-    private const LOGO_RELATIVE_PATH = 'images/tvri-logo.jpg';
+    private const LOGO_RELATIVE_PATH = 'images/tvri-logo.svg';
     private const LOGO_MAX_WIDTH = 80.0;
     private const LOGO_MAX_HEIGHT = 40.0;
     private const LOGO_BOTTOM_SPACING = 6.0;
@@ -297,7 +297,14 @@ class BarangPdfExporter
         }
 
         $topY = $pdf->getPageHeight() - $pdf->getMarginTop();
-        $drawnHeight = $pdf->drawImageFromPath($path, $topY, $pdf->getMarginLeft(), self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
+
+        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+
+        if ($extension === 'svg') {
+            $drawnHeight = $pdf->drawSvgFromPath($path, $topY, $pdf->getMarginLeft(), self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
+        } else {
+            $drawnHeight = $pdf->drawImageFromPath($path, $topY, $pdf->getMarginLeft(), self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
+        }
 
         if ($drawnHeight === null) {
             return null;
