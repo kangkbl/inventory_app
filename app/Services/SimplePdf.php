@@ -218,6 +218,246 @@ class SimplePdf
         return $drawHeight;
     }
 
+    public function drawSvgFromPath(string $path, float $topY, float $x, float $maxWidth, float $maxHeight): ?float
+    {
+        $this->ensurePageExists();
+
+        $contents = @file_get_contents($path);
+
+        if ($contents === false) {
+            return null;
+        }
+
+        if (! preg_match('/viewBox="([^"]+)"/i', $contents, $viewBoxMatch)) {
+            return null;
+        }
+
+        $viewBoxParts = preg_split('/\s+/', trim($viewBoxMatch[1]));
+
+        if ($viewBoxParts === false || count($viewBoxParts) !== 4) {
+            return null;
+        }
+
+        [$minX, $minY, $viewBoxWidth, $viewBoxHeight] = array_map('floatval', $viewBoxParts);
+
+        if ($viewBoxWidth <= 0 || $viewBoxHeight <= 0) {
+            return null;
+        }
+
+        if (! preg_match('/<path[^>]*d="([^"]+)"[^>]*>/i', $contents, $pathMatch)) {
+            return null;
+        }
+
+        $pathData = $pathMatch[1];
+
+        $fillColor = '#000000';
+
+        if (preg_match('/fill="([^"]+)"/i', $pathMatch[0], $fillMatch)) {
+            $fillColor = (string) $fillMatch[1];
+        }
+
+        $pdfPath = $this->convertSvgPathToPdfPath($pathData);
+
+        if ($pdfPath === '') {
+            return null;
+        }
+
+        $scale = min($maxWidth / $viewBoxWidth, $maxHeight / $viewBoxHeight, 1.0);
+
+        $drawHeight = $viewBoxHeight * $scale;
+
+        [$r, $g, $b] = $this->parseSvgColor($fillColor);
+
+        $translateX = $x - ($minX * $scale);
+        $translateY = $topY + ($minY * $scale);
+
+        $this->pages[$this->currentPageIndex]['content'] .= sprintf(
+            "q %.4f 0 0 %.4f %.4f %.4f cm %.4f %.4f %.4f rg %sf Q\n",
+            $scale,
+            -$scale,
+            $translateX,
+            $translateY,
+            $r,
+            $g,
+            $b,
+            $pdfPath,
+        );
+
+        return $drawHeight;
+    }
+
+    private function parseSvgColor(string $color): array
+    {
+        $color = trim($color);
+
+        if ($color === '' || strtolower($color) === 'none') {
+            return [0.0, 0.0, 0.0];
+        }
+
+        if ($color[0] === '#') {
+            $hex = substr($color, 1);
+
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+
+            if (strlen($hex) === 6 && ctype_xdigit($hex)) {
+                $r = hexdec(substr($hex, 0, 2));
+                $g = hexdec(substr($hex, 2, 2));
+                $b = hexdec(substr($hex, 4, 2));
+
+                return [$r / 255, $g / 255, $b / 255];
+            }
+        }
+
+        return [0.0, 0.0, 0.0];
+    }
+
+    private function convertSvgPathToPdfPath(string $pathData): string
+    {
+        if ($pathData === '') {
+            return '';
+        }
+
+        if (! preg_match_all('/([MLHVCSZ])|([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)/', $pathData, $matches)) {
+            return '';
+        }
+
+        $tokens = [];
+
+        foreach ($matches[0] as $index => $token) {
+            if ($matches[1][$index] !== '') {
+                $tokens[] = ['type' => 'command', 'value' => $matches[1][$index]];
+            } elseif ($matches[2][$index] !== '') {
+                $tokens[] = ['type' => 'number', 'value' => (float) $matches[2][$index]];
+            }
+        }
+
+        $result = [];
+        $currentX = 0.0;
+        $currentY = 0.0;
+        $subPathStartX = 0.0;
+        $subPathStartY = 0.0;
+
+        $count = count($tokens);
+        $i = 0;
+
+        while ($i < $count) {
+            $token = $tokens[$i];
+
+            if ($token['type'] !== 'command') {
+                $i++;
+
+                continue;
+            }
+
+            $command = $token['value'];
+            $i++;
+
+            $numbers = [];
+
+            while ($i < $count && $tokens[$i]['type'] === 'number') {
+                $numbers[] = $tokens[$i]['value'];
+                $i++;
+            }
+
+            switch ($command) {
+                case 'M':
+                    $pairs = count($numbers) / 2;
+
+                    for ($j = 0; $j < $pairs; $j++) {
+                        $x = $numbers[$j * 2] ?? null;
+                        $y = $numbers[($j * 2) + 1] ?? null;
+
+                        if ($x === null || $y === null) {
+                            return '';
+                        }
+
+                        if ($j === 0) {
+                            $result[] = sprintf('%.4f %.4f m ', $x, $y);
+                            $subPathStartX = $x;
+                            $subPathStartY = $y;
+                        } else {
+                            $result[] = sprintf('%.4f %.4f l ', $x, $y);
+                        }
+
+                        $currentX = $x;
+                        $currentY = $y;
+                    }
+
+                    break;
+
+                case 'L':
+                    $pairs = count($numbers) / 2;
+
+                    for ($j = 0; $j < $pairs; $j++) {
+                        $x = $numbers[$j * 2] ?? null;
+                        $y = $numbers[($j * 2) + 1] ?? null;
+
+                        if ($x === null || $y === null) {
+                            return '';
+                        }
+
+                        $result[] = sprintf('%.4f %.4f l ', $x, $y);
+                        $currentX = $x;
+                        $currentY = $y;
+                    }
+
+                    break;
+
+                case 'H':
+                    foreach ($numbers as $x) {
+                        $currentX = $x;
+                        $result[] = sprintf('%.4f %.4f l ', $currentX, $currentY);
+                    }
+
+                    break;
+
+                case 'V':
+                    foreach ($numbers as $y) {
+                        $currentY = $y;
+                        $result[] = sprintf('%.4f %.4f l ', $currentX, $currentY);
+                    }
+
+                    break;
+
+                case 'C':
+                    $segments = count($numbers) / 6;
+
+                    for ($j = 0; $j < $segments; $j++) {
+                        $x1 = $numbers[($j * 6)] ?? null;
+                        $y1 = $numbers[($j * 6) + 1] ?? null;
+                        $x2 = $numbers[($j * 6) + 2] ?? null;
+                        $y2 = $numbers[($j * 6) + 3] ?? null;
+                        $x = $numbers[($j * 6) + 4] ?? null;
+                        $y = $numbers[($j * 6) + 5] ?? null;
+
+                        if ($x1 === null || $y1 === null || $x2 === null || $y2 === null || $x === null || $y === null) {
+                            return '';
+                        }
+
+                        $result[] = sprintf('%.4f %.4f %.4f %.4f %.4f %.4f c ', $x1, $y1, $x2, $y2, $x, $y);
+                        $currentX = $x;
+                        $currentY = $y;
+                    }
+
+                    break;
+
+                case 'Z':
+                    $result[] = 'h ';
+                    $currentX = $subPathStartX;
+                    $currentY = $subPathStartY;
+
+                    break;
+
+                default:
+                    return '';
+            }
+        }
+
+        return implode('', $result);
+    }
+
     public function render(): string
     {
         $this->ensurePageExists();
@@ -249,7 +489,7 @@ class SimplePdf
             $pdf .= $number . " 0 obj\n" . $content . "\nendobj\n";
         };
 
-        $addObject($fontNumber, "<< /Type /Font /Subtype /Type1 /BaseFont /Calibri >>");
+        $addObject($fontNumber, "<< /Type /Font /Subtype /Type1 /BaseFont /Gotham-Light >>");
 
         foreach ($this->imageRegistry as $name => $image) {
             $data = $image['data'];
