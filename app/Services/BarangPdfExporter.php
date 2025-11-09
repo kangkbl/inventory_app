@@ -10,7 +10,9 @@ class BarangPdfExporter
 {
     private const PAGE_WIDTH = 595.0;
     private const PAGE_HEIGHT = 842.0;
-    private const PAGE_MARGIN = 30.0;
+    private const PAGE_MARGIN_LEFT = 30.0;
+    private const PAGE_MARGIN_BOTTOM = 30.0;
+    private const PAGE_MARGIN_TOP = 70.0;
 
     private const HEADER_TITLE_LINES = [
         'LAPORAN INVENTARIS',
@@ -22,8 +24,10 @@ class BarangPdfExporter
     private const META_LEADING = 14.0;
 
     private const LOGO_RELATIVE_PATH = 'images/tvri-logo.svg';
+    private const FONT_RELATIVE_PATH = 'fonts/Gotham/Gotham-Light.ttf';
     private const LOGO_MAX_WIDTH = 80.0;
     private const LOGO_MAX_HEIGHT = 40.0;
+    private const LOGO_LEFT_OFFSET = 20.0;
     private const LOGO_BOTTOM_SPACING = 6.0;
 
     private const TABLE_HEADER_FONT_SIZE = 11.0;
@@ -36,7 +40,12 @@ class BarangPdfExporter
     private const TABLE_CELL_PADDING_X = 4.0;
     private const TABLE_CELL_PADDING_Y = 5.0;
     private const TABLE_LINE_WIDTH = 0.8;
-    private const CHARACTER_WIDTH_RATIO = 0.5;
+    private const CHARACTER_DEFAULT_RATIO = 0.56;
+    private const CHARACTER_MEDIUM_RATIO = 0.5;
+    private const CHARACTER_NARROW_RATIO = 0.38;
+    private const CHARACTER_WIDE_RATIO = 0.72;
+    private const CHARACTER_PUNCTUATION_RATIO = 0.34;
+    private const CHARACTER_SPACE_RATIO = 0.28;
     private const EMPTY_ROW_COUNT = 15;
 
     /**
@@ -110,7 +119,14 @@ class BarangPdfExporter
 
     public function build(Collection $items): string
     {
-        $pdf = new SimplePdf(width: self::PAGE_WIDTH, height: self::PAGE_HEIGHT, margin: self::PAGE_MARGIN);
+        $pdf = new SimplePdf(
+            width: self::PAGE_WIDTH,
+            height: self::PAGE_HEIGHT,
+            margin: self::PAGE_MARGIN_LEFT,
+            marginTop: self::PAGE_MARGIN_TOP,
+            marginBottom: self::PAGE_MARGIN_BOTTOM,
+        );
+        $this->applyFont($pdf);
         $printedAt = now();
         $lastUpdated = $this->resolveLastUpdated($items);
 
@@ -288,6 +304,17 @@ class BarangPdfExporter
         $pdf->addLine('Halaman    : ' . $pageNumber, self::META_FONT_SIZE, self::META_LEADING, $margin);
     }
 
+    private function applyFont(SimplePdf $pdf): void
+    {
+        $path = $this->resolveFontPath();
+
+        if ($path === null) {
+            return;
+        }
+
+        $pdf->useTrueTypeFont($path, 'Gotham-Light');
+    }
+
     private function renderLogo(SimplePdf $pdf): ?float
     {
         $path = $this->resolveLogoPath();
@@ -300,10 +327,12 @@ class BarangPdfExporter
 
         $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
 
+        $logoX = $pdf->getMarginLeft() + self::LOGO_LEFT_OFFSET;
+
         if ($extension === 'svg') {
-            $drawnHeight = $pdf->drawSvgFromPath($path, $topY, $pdf->getMarginLeft(), self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
+            $drawnHeight = $pdf->drawSvgFromPath($path, $topY, $logoX, self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
         } else {
-            $drawnHeight = $pdf->drawImageFromPath($path, $topY, $pdf->getMarginLeft(), self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
+            $drawnHeight = $pdf->drawImageFromPath($path, $topY, $logoX, self::LOGO_MAX_WIDTH, self::LOGO_MAX_HEIGHT);
         }
 
         if ($drawnHeight === null) {
@@ -311,6 +340,25 @@ class BarangPdfExporter
         }
 
         return $topY - $drawnHeight;
+    }
+
+    private function resolveFontPath(): ?string
+    {
+        if (! function_exists('public_path')) {
+            return null;
+        }
+
+        $path = public_path(self::FONT_RELATIVE_PATH);
+
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     private function resolveLogoPath(): ?string
@@ -526,7 +574,52 @@ class BarangPdfExporter
     {
         $length = mb_strlen($text);
 
-        return max(0.0, $length * $fontSize * self::CHARACTER_WIDTH_RATIO);
+        if ($length === 0) {
+            return 0.0;
+        }
+
+        $width = 0.0;
+
+        for ($index = 0; $index < $length; $index++) {
+            $character = mb_substr($text, $index, 1);
+
+            if ($character === null) {
+                continue;
+            }
+
+            $width += $fontSize * $this->resolveCharacterWidthRatio($character);
+        }
+
+        return $width;
+    }
+
+    private function resolveCharacterWidthRatio(string $character): float
+    {
+        if ($character === ' ') {
+            return self::CHARACTER_SPACE_RATIO;
+        }
+
+        if ($character === "\t") {
+            return self::CHARACTER_SPACE_RATIO * 4;
+        }
+
+        if (preg_match('/[MWmw]/u', $character) === 1) {
+            return self::CHARACTER_WIDE_RATIO;
+        }
+
+        if (preg_match('/[IJij1lft]/u', $character) === 1) {
+            return self::CHARACTER_NARROW_RATIO;
+        }
+
+        if (preg_match('/[0-9]/u', $character) === 1) {
+            return self::CHARACTER_MEDIUM_RATIO;
+        }
+
+        if (preg_match('/[,.:;\-]/u', $character) === 1) {
+            return self::CHARACTER_PUNCTUATION_RATIO;
+        }
+
+        return self::CHARACTER_DEFAULT_RATIO;
     }
 
     private function formatValue(mixed $value): string
